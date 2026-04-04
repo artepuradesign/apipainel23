@@ -15,6 +15,18 @@ const NewHeroSection: React.FC = () => {
   const navigate = useNavigate();
   const [heroImageLoaded, setHeroImageLoaded] = React.useState(false);
 
+  React.useEffect(() => {
+    const preload = new Image();
+    preload.src = dashboardMockup;
+
+    if (preload.complete) {
+      setHeroImageLoaded(true);
+      return;
+    }
+
+    preload.onload = () => setHeroImageLoaded(true);
+  }, []);
+
   return (
     <section className="relative min-h-[600px] lg:min-h-[700px] overflow-hidden bg-gradient-to-br from-[hsl(230,40%,12%)] via-[hsl(260,45%,18%)] to-[hsl(280,50%,22%)]">
       {/* Decorative blurs */}
@@ -78,17 +90,15 @@ const NewHeroSection: React.FC = () => {
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="hidden lg:block"
+            className="block"
           >
-            <div className="relative">
-              {!heroImageLoaded && (
-                <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
-              )}
+            <div className="relative min-h-[220px] lg:min-h-[320px]">
+              <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
               <div className="absolute inset-0 bg-gradient-to-t from-[hsl(260,45%,18%)] via-transparent to-transparent z-10 rounded-2xl" />
               <img
                 src={dashboardMockup}
                 alt="Dashboard API Painel com gráficos e consultas CPF/CNPJ"
-                className={`w-full rounded-2xl shadow-2xl shadow-purple-900/40 border border-white/10 transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-full rounded-2xl shadow-2xl shadow-purple-900/40 border border-white/10 transition-opacity duration-500 ${heroImageLoaded ? 'opacity-100' : 'opacity-40'}`}
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"
