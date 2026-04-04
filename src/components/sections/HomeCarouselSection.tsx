@@ -543,7 +543,7 @@ const HomeCarouselSection: React.FC = () => {
                       INFO_TITLE_TO_DESC_GAP_MS
                     }
                     charMs={INFO_DESC_CHAR_MS}
-                    className="text-xs sm:text-sm text-white/70 leading-relaxed max-w-[50ch] mt-2"
+                    className="text-xs sm:text-sm text-white/70 leading-relaxed max-w-[50ch] mt-2 line-clamp-2 min-h-[2.5rem] sm:min-h-[2.875rem]"
                   />
                 </motion.div>
               </AnimatePresence>
@@ -609,16 +609,26 @@ const HomeCarouselSection: React.FC = () => {
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div
+                      <motion.div
                         className={cn(
                           "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
                           isMatrix
-                            ? "bg-green-500/15 text-green-400"
-                            : "bg-secondary/20 text-secondary"
+                            ? "bg-green-500/15 text-white"
+                            : "bg-secondary/20 text-white"
                         )}
+                        animate={{
+                          opacity: [0.9, 1, 0.9],
+                          scale: [1, 1.04, 1],
+                          filter: [
+                            "drop-shadow(0 0 0px hsl(var(--primary-foreground) / 0))",
+                            "drop-shadow(0 0 8px hsl(var(--primary-foreground) / 0.45))",
+                            "drop-shadow(0 0 0px hsl(var(--primary-foreground) / 0))",
+                          ],
+                        }}
+                        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
                       >
                         {card.icon}
-                      </div>
+                      </motion.div>
                       <div>
                         <TypewriterText
                           text={card.title}
