@@ -354,7 +354,7 @@ const PdfRg = () => {
       formDataToSend.append('full_name', formData.nome.toUpperCase().trim());
       formDataToSend.append('birth_date', formData.dataNascimento);
       formDataToSend.append('document_number', formData.cpf.trim());
-      formDataToSend.append('parent1', formData.pai.toUpperCase().trim());
+      formDataToSend.append('parent1', formData.pai.toUpperCase().trim() || '-');
       formDataToSend.append('parent2', formData.mae.toUpperCase().trim());
       if (user?.id) formDataToSend.append('id_user', String(user.id));
 
