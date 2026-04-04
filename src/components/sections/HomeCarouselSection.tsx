@@ -30,23 +30,35 @@ const CARD_ENTRANCE_DURATION_MS = 700;
 const TITLE_CHAR_MS = 38;
 const TYPE_START_GAP_MS = 120;
 const CARD_SEQUENCE_GAP_MS = 220;
+const INFO_TYPING_START_DELAY_MS = 140;
+const INFO_TITLE_CHAR_MS = 36;
+const INFO_DESC_CHAR_MS = 24;
+const INFO_TITLE_TO_DESC_GAP_MS = 180;
+const INFO_TO_CARDS_GAP_MS = 220;
 const SLIDE_END_BUFFER_MS = 650;
 
 const getTypingDuration = (text: string, charMs: number) => Math.max(650, text.length * charMs);
 
 const getCardTypingTotalDuration = (card: { title: string }) => getTypingDuration(card.title, TITLE_CHAR_MS);
 
-const getCardTypeStartDelay = (cards: Array<{ title: string }>, cardIndex: number) => {
+const getInfoBoxTypingDuration = (slide: { subtitle: string; description: string }) => {
+  const subtitleDuration = getTypingDuration(slide.subtitle, INFO_TITLE_CHAR_MS);
+  const descriptionDuration = getTypingDuration(slide.description, INFO_DESC_CHAR_MS);
+
+  return INFO_TYPING_START_DELAY_MS + subtitleDuration + INFO_TITLE_TO_DESC_GAP_MS + descriptionDuration;
+};
+
+const getCardTypeStartDelay = (cards: Array<{ title: string }>, cardIndex: number, baseDelayMs = 0) => {
   const previousCardsDuration = cards.slice(0, cardIndex).reduce((acc, card) => {
     return acc + getCardTypingTotalDuration(card) + CARD_SEQUENCE_GAP_MS;
   }, 0);
 
-  return CARD_ENTRANCE_DELAY_MS + CARD_ENTRANCE_DURATION_MS + TYPE_START_GAP_MS + previousCardsDuration;
+  return baseDelayMs + CARD_ENTRANCE_DELAY_MS + CARD_ENTRANCE_DURATION_MS + TYPE_START_GAP_MS + previousCardsDuration;
 };
 
-const getSlideAutoAdvanceMs = (cards: Array<{ title: string }>) => {
+const getSlideAutoAdvanceMs = (cards: Array<{ title: string }>, baseDelayMs = 0) => {
   const lastCardCompletion = cards.reduce((maxDuration, card, cardIndex) => {
-    const titleStart = getCardTypeStartDelay(cards, cardIndex);
+    const titleStart = getCardTypeStartDelay(cards, cardIndex, baseDelayMs);
     const cardCompletion = titleStart + getCardTypingTotalDuration(card);
     return Math.max(maxDuration, cardCompletion);
   }, 0);
@@ -351,15 +363,17 @@ const HomeCarouselSection: React.FC = () => {
   const visibleFeatureCards = Array.from({ length: Math.min(cardsPerSlide, featureCards.length) }, (_, idx) =>
     featureCards[(startCardIndex + idx) % featureCards.length]
   );
+  const infoBoxTypingDuration = getInfoBoxTypingDuration(slides[active]);
+  const cardsTypingBaseDelay = infoBoxTypingDuration + INFO_TO_CARDS_GAP_MS;
 
   useEffect(() => {
-    const autoAdvanceDelay = getSlideAutoAdvanceMs(visibleFeatureCards);
+    const autoAdvanceDelay = getSlideAutoAdvanceMs(visibleFeatureCards, cardsTypingBaseDelay);
     const timer = window.setTimeout(() => {
       goToNextSlide();
     }, autoAdvanceDelay);
 
     return () => window.clearTimeout(timer);
-  }, [active, goToNextSlide, visibleFeatureCards]);
+  }, [active, cardsTypingBaseDelay, goToNextSlide, visibleFeatureCards]);
 
   const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const shouldSlide = Math.abs(info.offset.x) > 80 || Math.abs(info.velocity.x) > 450;
@@ -506,12 +520,22 @@ const HomeCarouselSection: React.FC = () => {
                     WebkitBackdropFilter: "blur(20px) saturate(1.4)",
                   }}
                 >
-                  <p className="text-sm sm:text-base text-white/90 leading-relaxed max-w-[44ch] font-semibold sm:whitespace-nowrap">
-                    {slides[active].subtitle}
-                  </p>
-                  <p className="text-xs sm:text-sm text-white/70 leading-relaxed max-w-[50ch] mt-2">
-                    {slides[active].description}
-                  </p>
+                  <TypewriterText
+                    text={slides[active].subtitle}
+                    startDelay={INFO_TYPING_START_DELAY_MS}
+                    charMs={INFO_TITLE_CHAR_MS}
+                    className="text-sm sm:text-base text-white/90 leading-relaxed max-w-[44ch] font-semibold sm:whitespace-nowrap"
+                  />
+                  <TypewriterText
+                    text={slides[active].description}
+                    startDelay={
+                      INFO_TYPING_START_DELAY_MS +
+                      getTypingDuration(slides[active].subtitle, INFO_TITLE_CHAR_MS) +
+                      INFO_TITLE_TO_DESC_GAP_MS
+                    }
+                    charMs={INFO_DESC_CHAR_MS}
+                    className="text-xs sm:text-sm text-white/70 leading-relaxed max-w-[50ch] mt-2"
+                  />
                 </motion.div>
               </AnimatePresence>
 
@@ -554,7 +578,7 @@ const HomeCarouselSection: React.FC = () => {
 
               {/* Feature cards - aligned right with unique entrance animations */}
               {visibleFeatureCards.map((card, i) => {
-                const cardTypingStartDelay = getCardTypeStartDelay(visibleFeatureCards, i);
+                const cardTypingStartDelay = getCardTypeStartDelay(visibleFeatureCards, i, cardsTypingBaseDelay);
                 const cardEntranceDelay = Math.max(0, cardTypingStartDelay - 180);
 
                 return (
