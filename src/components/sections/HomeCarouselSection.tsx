@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Zap, ShieldCheck, FileSearch } from "lucide-react";
@@ -176,6 +176,8 @@ const HomeCarouselSection: React.FC = () => {
   const isMatrix = currentVisualTheme === "matrix";
   const [active, setActive] = useState(0);
   const [loadedSlides, setLoadedSlides] = useState<boolean[]>([]);
+  const [hasCompletedFirstLoop, setHasCompletedFirstLoop] = useState(false);
+  const hasLeftFirstSlideRef = useRef(false);
 
   const slides = useMemo<Slide[]>(() => content.slides, [content.slides]);
 
@@ -185,6 +187,17 @@ const HomeCarouselSection: React.FC = () => {
     }, 6500);
     return () => clearInterval(timer);
   }, [slides.length]);
+
+  useEffect(() => {
+    if (active !== 0) {
+      hasLeftFirstSlideRef.current = true;
+      return;
+    }
+
+    if (hasLeftFirstSlideRef.current) {
+      setHasCompletedFirstLoop(true);
+    }
+  }, [active]);
 
   useEffect(() => {
     let isMounted = true;
@@ -280,7 +293,12 @@ const HomeCarouselSection: React.FC = () => {
             className="absolute inset-0"
             initial={false}
             animate={{
-              opacity: idx === active && active !== 0 && loadedSlides[idx] ? 1 : 0,
+              opacity:
+                idx === active &&
+                loadedSlides[idx] &&
+                (idx !== 0 || hasCompletedFirstLoop)
+                  ? 1
+                  : 0,
               scale: idx === active ? 1 : 1.04,
               filter: idx === active ? "blur(0px)" : "blur(4px)",
             }}
