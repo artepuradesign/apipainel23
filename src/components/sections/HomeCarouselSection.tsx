@@ -541,56 +541,61 @@ const HomeCarouselSection: React.FC = () => {
               />
 
               {/* Feature cards - aligned right with unique entrance animations */}
-              {visibleFeatureCards.map((card, i) => (
-                <motion.div
-                  key={`${active}-${card.title}`}
-                  initial={card.initial}
-                  animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }}
-                  transition={{ duration: 0.7, delay: 0.15 + i * 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={{ y: -6, scale: 1.04, transition: { duration: 0.25 } }}
-                  className={cn(
-                    "relative z-10 w-[260px] rounded-2xl p-4 cursor-default self-end",
-                    isMatrix
-                      ? "bg-black/50 border border-green-500/20"
-                      : "bg-white/10 border border-white/15"
-                  )}
-                  style={{
-                    backdropFilter: "blur(24px) saturate(1.5)",
-                    WebkitBackdropFilter: "blur(24px) saturate(1.5)",
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                        isMatrix
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-secondary/20 text-secondary"
-                      )}
-                    >
-                      {card.icon}
+              {visibleFeatureCards.map((card, i) => {
+                const cardTypingStartDelay = getCardTypeStartDelay(visibleFeatureCards, i);
+                const cardEntranceDelay = Math.max(0, cardTypingStartDelay - 180);
+
+                return (
+                  <motion.div
+                    key={`${active}-${card.title}`}
+                    initial={card.initial}
+                    animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.7, delay: cardEntranceDelay / 1000, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ y: -6, scale: 1.04, transition: { duration: 0.25 } }}
+                    className={cn(
+                      "relative z-10 w-[260px] rounded-2xl p-4 cursor-default self-end",
+                      isMatrix
+                        ? "bg-black/50 border border-green-500/20"
+                        : "bg-white/10 border border-white/15"
+                    )}
+                    style={{
+                      backdropFilter: "blur(24px) saturate(1.5)",
+                      WebkitBackdropFilter: "blur(24px) saturate(1.5)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                          isMatrix
+                            ? "bg-green-500/15 text-green-400"
+                            : "bg-secondary/20 text-secondary"
+                        )}
+                      >
+                        {card.icon}
+                      </div>
+                      <div>
+                        <TypewriterText
+                          text={card.title}
+                          startDelay={cardTypingStartDelay}
+                          charMs={TITLE_CHAR_MS}
+                          className="text-sm font-semibold text-white"
+                        />
+                        <TypewriterText
+                          text={card.desc}
+                          startDelay={
+                            cardTypingStartDelay +
+                            getTypingDuration(card.title, TITLE_CHAR_MS) +
+                            TITLE_TO_DESC_GAP_MS
+                          }
+                          charMs={DESC_CHAR_MS}
+                          className="text-xs text-white/50"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <TypewriterText
-                        text={card.title}
-                        startDelay={getCardTypeStartDelay(visibleFeatureCards, i)}
-                        charMs={TITLE_CHAR_MS}
-                        className="text-sm font-semibold text-white"
-                      />
-                      <TypewriterText
-                        text={card.desc}
-                        startDelay={
-                          getCardTypeStartDelay(visibleFeatureCards, i) +
-                          getTypingDuration(card.title, TITLE_CHAR_MS) +
-                          TITLE_TO_DESC_GAP_MS
-                        }
-                        charMs={DESC_CHAR_MS}
-                        className="text-xs text-white/50"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
