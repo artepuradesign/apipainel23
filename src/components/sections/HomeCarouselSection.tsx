@@ -175,7 +175,7 @@ const HomeCarouselSection: React.FC = () => {
   const content = homeCarouselContent[locale];
   const isMatrix = currentVisualTheme === "matrix";
   const [active, setActive] = useState(0);
-  const [isHeroReady, setIsHeroReady] = useState(false);
+  const [loadedSlides, setLoadedSlides] = useState<boolean[]>([]);
 
   const slides = useMemo<Slide[]>(() => content.slides, [content.slides]);
 
@@ -188,23 +188,29 @@ const HomeCarouselSection: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true;
+    setLoadedSlides(new Array(slides.length).fill(false));
 
-    const preloadImages = async () => {
-      const loaders = slides.map(
-        (slide) =>
-          new Promise<void>((resolve) => {
-            const img = new Image();
-            img.src = slide.image;
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          })
-      );
+    slides.forEach((slide, idx) => {
+      const img = new Image();
+      img.src = slide.image;
 
-      await Promise.all(loaders);
-      if (isMounted) setIsHeroReady(true);
-    };
+      const markAsLoaded = () => {
+        if (!isMounted) return;
+        setLoadedSlides((prev) => {
+          const next = prev.length === slides.length ? [...prev] : new Array(slides.length).fill(false);
+          if (next[idx]) return prev;
+          next[idx] = true;
+          return next;
+        });
+      };
 
-    preloadImages();
+      if (img.complete) {
+        markAsLoaded();
+      } else {
+        img.onload = markAsLoaded;
+        img.onerror = markAsLoaded;
+      }
+    });
 
     return () => {
       isMounted = false;
@@ -262,18 +268,19 @@ const HomeCarouselSection: React.FC = () => {
       aria-label="Hero"
       className="relative w-full overflow-hidden"
       initial={{ opacity: 0, y: 10 }}
-      animate={isHeroReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
     >
       {/* Background images with crossfade */}
       <div className="absolute inset-0">
+        <div className={cn("absolute inset-0", isMatrix ? "bg-black" : "bg-background")} />
         {slides.map((slide, idx) => (
           <motion.div
             key={idx}
             className="absolute inset-0"
             initial={false}
             animate={{
-              opacity: idx === active && isHeroReady ? 1 : 0,
+              opacity: idx === active && active !== 0 && loadedSlides[idx] ? 1 : 0,
               scale: idx === active ? 1 : 1.04,
               filter: idx === active ? "blur(0px)" : "blur(4px)",
             }}
