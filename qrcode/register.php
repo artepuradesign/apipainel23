@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 }
 
 // ==================== VALIDAÇÃO DOS CAMPOS OBRIGATÓRIOS ====================
-$required_fields = ['full_name', 'birth_date', 'document_number', 'parent1', 'parent2'];
+$required_fields = ['full_name', 'birth_date', 'document_number', 'parent2'];
 foreach ($required_fields as $field) {
     if (empty($_POST[$field])) {
         http_response_code(400);
@@ -33,7 +33,7 @@ foreach ($required_fields as $field) {
 $full_name       = strtoupper(trim($_POST['full_name']));
 $birth_date      = $_POST['birth_date'];
 $document_number = trim($_POST['document_number']);
-$parent1         = strtoupper(trim($_POST['parent1']));
+$parent1         = strtoupper(trim($_POST['parent1'] ?? ''));
 $parent2         = strtoupper(trim($_POST['parent2']));
 $id_user         = isset($_POST['id_user']) ? trim((string)$_POST['id_user']) : null;
 
