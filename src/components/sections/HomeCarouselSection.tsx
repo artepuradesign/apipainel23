@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Zap, ShieldCheck, FileSearch } from "lucide-react";
@@ -129,7 +129,7 @@ const homeCarouselContent: Record<Locale, HomeCarouselContent> = {
       {
         title: 'Criamos Soluções',
         subtitle: 'Painéis sob medida para cada necessidade',
-        description: 'Desenvolvemos painéis personalizados para pessoas físicas e empresas de todos os segmentos, criando módulos novos que atendem necessidades reais e entregam soluções completas.',
+        description: 'Criamos painéis personalizados para pessoas e empresas, com módulos sob medida para cada operação.',
         image: slide02,
       },
       {
@@ -272,8 +272,6 @@ const HomeCarouselSection: React.FC = () => {
   const isMatrix = currentVisualTheme === "matrix";
   const [active, setActive] = useState(0);
   const [loadedSlides, setLoadedSlides] = useState<boolean[]>([]);
-  const [hasCompletedFirstLoop, setHasCompletedFirstLoop] = useState(false);
-  const hasLeftFirstSlideRef = useRef(false);
 
   const slides = useMemo<Slide[]>(() => content.slides, [content.slides]);
 
@@ -284,17 +282,6 @@ const HomeCarouselSection: React.FC = () => {
   const goToPrevSlide = useCallback(() => {
     setActive((prev) => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
-
-  useEffect(() => {
-    if (active !== 0) {
-      hasLeftFirstSlideRef.current = true;
-      return;
-    }
-
-    if (hasLeftFirstSlideRef.current) {
-      setHasCompletedFirstLoop(true);
-    }
-  }, [active]);
 
   useEffect(() => {
     let isMounted = true;
@@ -421,7 +408,7 @@ const HomeCarouselSection: React.FC = () => {
               opacity:
                 idx === active &&
                 loadedSlides[idx] &&
-                (idx !== 0 || hasCompletedFirstLoop)
+                true
                   ? 1
                   : 0,
               scale: idx === active ? 1 : 1.04,
