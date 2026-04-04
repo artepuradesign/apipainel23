@@ -27,10 +27,8 @@ type HomeCarouselContent = {
 
 const CARD_ENTRANCE_DELAY_MS = 150;
 const CARD_ENTRANCE_DURATION_MS = 700;
-const TITLE_CHAR_MS = 24;
-const DESC_CHAR_MS = 18;
+const TITLE_CHAR_MS = 38;
 const TYPE_START_GAP_MS = 120;
-const TITLE_TO_DESC_GAP_MS = 180;
 const CARD_SEQUENCE_GAP_MS = 220;
 const SLIDE_END_BUFFER_MS = 650;
 
@@ -67,20 +65,35 @@ const TypewriterText: React.FC<{
   useEffect(() => {
     setVisibleChars(0);
 
-    const delayTimer = window.setTimeout(() => {
-      let charIndex = 0;
-      const typeTimer = window.setInterval(() => {
-        charIndex += 1;
-        setVisibleChars(charIndex);
+    let cancelled = false;
+    let nextTimer: number | null = null;
 
-        if (charIndex >= text.length) {
-          window.clearInterval(typeTimer);
-        }
-      }, charMs);
+    const getHumanizedDelay = (char: string) => {
+      const punctuationPause = /[.,!?;:]/.test(char) ? 120 : 0;
+      const spacePause = char === " " ? 20 : 0;
+      const jitter = Math.floor((Math.random() - 0.5) * 18);
+      return Math.max(20, charMs + punctuationPause + spacePause + jitter);
+    };
+
+    const typeNextChar = (charIndex: number) => {
+      if (cancelled) return;
+      const nextIndex = charIndex + 1;
+      setVisibleChars(nextIndex);
+      if (nextIndex >= text.length) return;
+
+      const currentChar = text[nextIndex - 1] ?? "";
+      nextTimer = window.setTimeout(() => typeNextChar(nextIndex), getHumanizedDelay(currentChar));
+    };
+
+    const delayTimer = window.setTimeout(() => {
+      if (!text.length) return;
+      typeNextChar(0);
     }, startDelay);
 
     return () => {
+      cancelled = true;
       window.clearTimeout(delayTimer);
+      if (nextTimer) window.clearTimeout(nextTimer);
     };
   }, [text, startDelay, charMs]);
 
