@@ -26,25 +26,31 @@ type HomeCarouselContent = {
 };
 
 const CARD_ENTRANCE_DELAY_MS = 150;
-const CARD_STAGGER_MS = 180;
 const CARD_ENTRANCE_DURATION_MS = 700;
 const TITLE_CHAR_MS = 24;
 const DESC_CHAR_MS = 18;
 const TYPE_START_GAP_MS = 120;
 const TITLE_TO_DESC_GAP_MS = 180;
+const CARD_SEQUENCE_GAP_MS = 220;
 const SLIDE_END_BUFFER_MS = 650;
 
 const getTypingDuration = (text: string, charMs: number) => Math.max(650, text.length * charMs);
 
-const getCardTypeStartDelay = (cardIndex: number) =>
-  CARD_ENTRANCE_DELAY_MS + cardIndex * CARD_STAGGER_MS + CARD_ENTRANCE_DURATION_MS + TYPE_START_GAP_MS;
+const getCardTypingTotalDuration = (card: { title: string; desc: string }) =>
+  getTypingDuration(card.title, TITLE_CHAR_MS) + TITLE_TO_DESC_GAP_MS + getTypingDuration(card.desc, DESC_CHAR_MS);
+
+const getCardTypeStartDelay = (cards: Array<{ title: string; desc: string }>, cardIndex: number) => {
+  const previousCardsDuration = cards.slice(0, cardIndex).reduce((acc, card) => {
+    return acc + getCardTypingTotalDuration(card) + CARD_SEQUENCE_GAP_MS;
+  }, 0);
+
+  return CARD_ENTRANCE_DELAY_MS + CARD_ENTRANCE_DURATION_MS + TYPE_START_GAP_MS + previousCardsDuration;
+};
 
 const getSlideAutoAdvanceMs = (cards: Array<{ title: string; desc: string }>) => {
   const lastCardCompletion = cards.reduce((maxDuration, card, cardIndex) => {
-    const titleStart = getCardTypeStartDelay(cardIndex);
-    const titleDuration = getTypingDuration(card.title, TITLE_CHAR_MS);
-    const descDuration = getTypingDuration(card.desc, DESC_CHAR_MS);
-    const cardCompletion = titleStart + titleDuration + TITLE_TO_DESC_GAP_MS + descDuration;
+    const titleStart = getCardTypeStartDelay(cards, cardIndex);
+    const cardCompletion = titleStart + getCardTypingTotalDuration(card);
     return Math.max(maxDuration, cardCompletion);
   }, 0);
 
@@ -567,14 +573,16 @@ const HomeCarouselSection: React.FC = () => {
                     <div>
                       <TypewriterText
                         text={card.title}
-                        startDelay={getCardTypeStartDelay(i)}
+                        startDelay={getCardTypeStartDelay(visibleFeatureCards, i)}
                         charMs={TITLE_CHAR_MS}
                         className="text-sm font-semibold text-white"
                       />
                       <TypewriterText
                         text={card.desc}
                         startDelay={
-                          getCardTypeStartDelay(i) + getTypingDuration(card.title, TITLE_CHAR_MS) + TITLE_TO_DESC_GAP_MS
+                          getCardTypeStartDelay(visibleFeatureCards, i) +
+                          getTypingDuration(card.title, TITLE_CHAR_MS) +
+                          TITLE_TO_DESC_GAP_MS
                         }
                         charMs={DESC_CHAR_MS}
                         className="text-xs text-white/50"
