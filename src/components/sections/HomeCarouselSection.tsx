@@ -273,7 +273,7 @@ const HomeCarouselSection: React.FC = () => {
     >
       {/* Background images with crossfade */}
       <div className="absolute inset-0">
-        <div className={cn("absolute inset-0", isMatrix ? "bg-black" : "bg-background")} />
+        <div className={cn("absolute inset-0", isMatrix ? "bg-black" : "bg-foreground")} />
         {slides.map((slide, idx) => (
           <motion.div
             key={idx}
