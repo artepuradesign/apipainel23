@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Zap, ShieldCheck, FileSearch } from "lucide-react";
 import { useSiteTheme } from "@/contexts/SiteThemeContext";
@@ -23,6 +23,63 @@ type HomeCarouselContent = {
   slides: Slide[];
   stats: Array<{ value: string; label: string }>;
   featureCards: Array<{ title: string; desc: string }>;
+};
+
+const CARD_ENTRANCE_DELAY_MS = 150;
+const CARD_STAGGER_MS = 180;
+const CARD_ENTRANCE_DURATION_MS = 700;
+const TITLE_CHAR_MS = 24;
+const DESC_CHAR_MS = 18;
+const TYPE_START_GAP_MS = 120;
+const TITLE_TO_DESC_GAP_MS = 180;
+const SLIDE_END_BUFFER_MS = 650;
+
+const getTypingDuration = (text: string, charMs: number) => Math.max(650, text.length * charMs);
+
+const getCardTypeStartDelay = (cardIndex: number) =>
+  CARD_ENTRANCE_DELAY_MS + cardIndex * CARD_STAGGER_MS + CARD_ENTRANCE_DURATION_MS + TYPE_START_GAP_MS;
+
+const getSlideAutoAdvanceMs = (cards: Array<{ title: string; desc: string }>) => {
+  const lastCardCompletion = cards.reduce((maxDuration, card, cardIndex) => {
+    const titleStart = getCardTypeStartDelay(cardIndex);
+    const titleDuration = getTypingDuration(card.title, TITLE_CHAR_MS);
+    const descDuration = getTypingDuration(card.desc, DESC_CHAR_MS);
+    const cardCompletion = titleStart + titleDuration + TITLE_TO_DESC_GAP_MS + descDuration;
+    return Math.max(maxDuration, cardCompletion);
+  }, 0);
+
+  return lastCardCompletion + SLIDE_END_BUFFER_MS;
+};
+
+const TypewriterText: React.FC<{
+  text: string;
+  startDelay: number;
+  charMs: number;
+  className: string;
+}> = ({ text, startDelay, charMs, className }) => {
+  const [visibleChars, setVisibleChars] = useState(0);
+
+  useEffect(() => {
+    setVisibleChars(0);
+
+    const delayTimer = window.setTimeout(() => {
+      let charIndex = 0;
+      const typeTimer = window.setInterval(() => {
+        charIndex += 1;
+        setVisibleChars(charIndex);
+
+        if (charIndex >= text.length) {
+          window.clearInterval(typeTimer);
+        }
+      }, charMs);
+    }, startDelay);
+
+    return () => {
+      window.clearTimeout(delayTimer);
+    };
+  }, [text, startDelay, charMs]);
+
+  return <p className={className}>{text.slice(0, visibleChars)}</p>;
 };
 
 const homeCarouselContent: Record<Locale, HomeCarouselContent> = {
@@ -181,11 +238,12 @@ const HomeCarouselSection: React.FC = () => {
 
   const slides = useMemo<Slide[]>(() => content.slides, [content.slides]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActive((prev) => (prev + 1) % slides.length);
-    }, 6500);
-    return () => clearInterval(timer);
+  const goToNextSlide = useCallback(() => {
+    setActive((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
+
+  const goToPrevSlide = useCallback(() => {
+    setActive((prev) => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
 
   useEffect(() => {
@@ -276,13 +334,39 @@ const HomeCarouselSection: React.FC = () => {
     featureCards[(startCardIndex + idx) % featureCards.length]
   );
 
+  useEffect(() => {
+    const autoAdvanceDelay = getSlideAutoAdvanceMs(visibleFeatureCards);
+    const timer = window.setTimeout(() => {
+      goToNextSlide();
+    }, autoAdvanceDelay);
+
+    return () => window.clearTimeout(timer);
+  }, [active, goToNextSlide, visibleFeatureCards]);
+
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const shouldSlide = Math.abs(info.offset.x) > 80 || Math.abs(info.velocity.x) > 450;
+    if (!shouldSlide) return;
+
+    if (info.offset.x < 0 || info.velocity.x < 0) {
+      goToNextSlide();
+      return;
+    }
+
+    goToPrevSlide();
+  };
+
   return (
     <motion.section
       aria-label="Hero"
-      className="relative w-full overflow-hidden"
+      className="relative w-full overflow-hidden cursor-grab active:cursor-grabbing"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.12}
+      onDragEnd={handleDragEnd}
+      style={{ touchAction: "pan-y" }}
     >
       {/* Background images with crossfade */}
       <div className="absolute inset-0">
@@ -481,8 +565,20 @@ const HomeCarouselSection: React.FC = () => {
                       {card.icon}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">{card.title}</p>
-                      <p className="text-xs text-white/50">{card.desc}</p>
+                      <TypewriterText
+                        text={card.title}
+                        startDelay={getCardTypeStartDelay(i)}
+                        charMs={TITLE_CHAR_MS}
+                        className="text-sm font-semibold text-white"
+                      />
+                      <TypewriterText
+                        text={card.desc}
+                        startDelay={
+                          getCardTypeStartDelay(i) + getTypingDuration(card.title, TITLE_CHAR_MS) + TITLE_TO_DESC_GAP_MS
+                        }
+                        charMs={DESC_CHAR_MS}
+                        className="text-xs text-white/50"
+                      />
                     </div>
                   </div>
                 </motion.div>
