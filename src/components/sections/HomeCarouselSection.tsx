@@ -36,10 +36,9 @@ const SLIDE_END_BUFFER_MS = 650;
 
 const getTypingDuration = (text: string, charMs: number) => Math.max(650, text.length * charMs);
 
-const getCardTypingTotalDuration = (card: { title: string; desc: string }) =>
-  getTypingDuration(card.title, TITLE_CHAR_MS) + TITLE_TO_DESC_GAP_MS + getTypingDuration(card.desc, DESC_CHAR_MS);
+const getCardTypingTotalDuration = (card: { title: string }) => getTypingDuration(card.title, TITLE_CHAR_MS);
 
-const getCardTypeStartDelay = (cards: Array<{ title: string; desc: string }>, cardIndex: number) => {
+const getCardTypeStartDelay = (cards: Array<{ title: string }>, cardIndex: number) => {
   const previousCardsDuration = cards.slice(0, cardIndex).reduce((acc, card) => {
     return acc + getCardTypingTotalDuration(card) + CARD_SEQUENCE_GAP_MS;
   }, 0);
@@ -47,7 +46,7 @@ const getCardTypeStartDelay = (cards: Array<{ title: string; desc: string }>, ca
   return CARD_ENTRANCE_DELAY_MS + CARD_ENTRANCE_DURATION_MS + TYPE_START_GAP_MS + previousCardsDuration;
 };
 
-const getSlideAutoAdvanceMs = (cards: Array<{ title: string; desc: string }>) => {
+const getSlideAutoAdvanceMs = (cards: Array<{ title: string }>) => {
   const lastCardCompletion = cards.reduce((maxDuration, card, cardIndex) => {
     const titleStart = getCardTypeStartDelay(cards, cardIndex);
     const cardCompletion = titleStart + getCardTypingTotalDuration(card);
@@ -580,16 +579,6 @@ const HomeCarouselSection: React.FC = () => {
                           startDelay={cardTypingStartDelay}
                           charMs={TITLE_CHAR_MS}
                           className="text-sm font-semibold text-white"
-                        />
-                        <TypewriterText
-                          text={card.desc}
-                          startDelay={
-                            cardTypingStartDelay +
-                            getTypingDuration(card.title, TITLE_CHAR_MS) +
-                            TITLE_TO_DESC_GAP_MS
-                          }
-                          charMs={DESC_CHAR_MS}
-                          className="text-xs text-white/50"
                         />
                       </div>
                     </div>
