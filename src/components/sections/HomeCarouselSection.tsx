@@ -109,7 +109,16 @@ const TypewriterText: React.FC<{
     };
   }, [text, startDelay, charMs]);
 
-  return <p className={className}>{text.slice(0, visibleChars)}</p>;
+  return (
+    <p className={cn("relative", className)} aria-label={text}>
+      <span aria-hidden="true" className="invisible block">
+        {text}
+      </span>
+      <span aria-hidden="true" className="absolute inset-0 block">
+        {text.slice(0, visibleChars)}
+      </span>
+    </p>
+  );
 };
 
 const homeCarouselContent: Record<Locale, HomeCarouselContent> = {
