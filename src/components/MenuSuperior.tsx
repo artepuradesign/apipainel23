@@ -113,7 +113,7 @@ const MenuSuperior = () => {
     <TooltipProvider delayDuration={300}>
       <header
         className={cn(
-          isHomePage ? 'fixed inset-x-0 top-0 z-50' : 'sticky top-0 z-50',
+          'fixed inset-x-0 top-0 z-50',
           liquidGlassConfig.enabled ? 'liquid-glass-container' : 'bg-background',
           isHomePage ? 'border-b border-transparent' : liquidGlassConfig.enabled ? 'border-b border-white/20' : 'border-b border-border'
         )}
@@ -229,6 +229,7 @@ const MenuSuperior = () => {
           </div>
         </div>
       </header>
+      <div className="h-16" aria-hidden="true" />
 
       {isMenuOpen && (
         <>

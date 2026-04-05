@@ -554,6 +554,7 @@ const PanelsGrid: React.FC<PanelsGridProps> = ({ activePanels }) => {
             key={panel.id}
             value={panel}
             drag={isManualReorderEnabled ? 'y' : false}
+            id={`panel-${panel.id}`}
             className={isManualReorderEnabled ? 'animate-fade-in rounded-lg border border-dashed border-border/70 bg-background/90 p-1' : ''}
           >
             <motion.div
