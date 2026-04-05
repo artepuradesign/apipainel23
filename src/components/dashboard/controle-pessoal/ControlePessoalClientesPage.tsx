@@ -47,6 +47,28 @@ import { apiRequest } from '@/config/api';
 import { toast } from 'sonner';
 import FotosSection from '@/components/dashboard/FotosSection';
 import ScoreGaugeCard from '@/components/dashboard/ScoreGaugeCard';
+import { baseFotoService } from '@/services/baseFotoService';
+import { baseTelefoneService } from '@/services/baseTelefoneService';
+import { baseEmailService } from '@/services/baseEmailService';
+import { baseEnderecoService } from '@/services/baseEnderecoService';
+import { baseParenteService } from '@/services/baseParenteService';
+import { baseCertidaoService } from '@/services/baseCertidaoService';
+import { baseDocumentoService } from '@/services/baseDocumentoService';
+import { baseCnsService } from '@/services/baseCnsService';
+import { baseVacinaService } from '@/services/baseVacinaService';
+import { baseEmpresaSocioService } from '@/services/baseEmpresaSocioService';
+import { baseCnpjMeiService } from '@/services/baseCnpjMeiService';
+import { baseDividasAtivasService } from '@/services/baseDividasAtivasService';
+import { baseAuxilioEmergencialService } from '@/services/baseAuxilioEmergencialService';
+import { baseRaisService } from '@/services/baseRaisService';
+import { baseInssService } from '@/services/baseInssService';
+import { baseClaroService } from '@/services/baseClaroService';
+import { baseVivoService } from '@/services/baseVivoService';
+import { baseTimService } from '@/services/baseTimService';
+import { baseOperadoraOiService } from '@/services/baseOperadoraOiService';
+import { baseSenhaEmailService } from '@/services/baseSenhaEmailService';
+import { baseSenhaCpfService } from '@/services/baseSenhaCpfService';
+import { baseGestaoService } from '@/services/baseGestaoService';
 import ModuleCardTemplates from '@/components/configuracoes/personalization/ModuleCardTemplates';
 import ModuleGridWrapper from '@/components/configuracoes/personalization/ModuleGridWrapper';
 import { cn } from '@/lib/utils';
@@ -190,6 +212,16 @@ const normalizeCollection = (value: unknown): Array<Record<string, unknown>> => 
   }
 
   return [{ valor: String(value) }];
+};
+
+const extractListData = (value: unknown): Array<Record<string, unknown>> => {
+  if (Array.isArray(value)) return normalizeCollection(value);
+  if (!value || typeof value !== 'object') return [];
+
+  const raw = value as Record<string, unknown>;
+  if (Array.isArray(raw.data)) return normalizeCollection(raw.data);
+  if (raw.data && typeof raw.data === 'object') return normalizeCollection(raw.data);
+  return [];
 };
 
 const labelFromKey = (key: string) =>
@@ -407,6 +439,25 @@ const sectionOrderByModuleProfile: Record<'puxaTudo' | 'completo' | 'basico', St
   basico: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
 };
 
+const normalizeTitleText = (value?: string | null) =>
+  (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const resolveModuleProfile = (params: { id?: number; route?: string; title?: string; slug?: string }): 'puxaTudo' | 'completo' | 'basico' => {
+  const route = normalizeModuleRoute(params.route || '').toLowerCase();
+  const title = normalizeTitleText(params.title);
+  const slug = normalizeTitleText(params.slug);
+  const merged = `${route} ${title} ${slug}`;
+
+  if (params.id === 154 || merged.includes('puxa tudo') || merged.includes('puxa-tudo') || merged.includes('puxatudo')) return 'puxaTudo';
+  if (params.id === 83 || merged.includes('completo')) return 'completo';
+  return 'basico';
+};
+
 const ControlePessoalClientesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -414,6 +465,7 @@ const ControlePessoalClientesPage = () => {
   const { panels } = useApiPanels();
   const { hasActiveSubscription, calculateDiscountedPrice } = useUserSubscription();
   const modulesSectionRef = useRef<HTMLDivElement | null>(null);
+  const resultSectionRef = useRef<HTMLDivElement | null>(null);
 
   const [savedClients, setSavedClients] = useState<SavedClient[]>([]);
   const [consultations, setConsultations] = useState<ConsultaCpf[]>([]);
@@ -452,7 +504,11 @@ const ControlePessoalClientesPage = () => {
     const selectedModules = modules
       .filter((module) => {
         const routes = [module.path, module.slug, module.api_endpoint].map((value) => normalizeRoute(String(value || '')));
-        return routes.some((route) => relevantLookupRoutes.includes(route));
+        const byRoute = routes.some((route) => relevantLookupRoutes.includes(route));
+        if (byRoute) return true;
+
+        const mergedText = normalizeTitleText(`${module.title} ${module.name} ${module.slug}`);
+        return mergedText.includes('cpf') || mergedText.includes('nome completo') || mergedText.includes('puxa tudo');
       })
       .sort((a, b) => (Number(a.sort_order || 0) - Number(b.sort_order || 0)));
 
@@ -494,6 +550,12 @@ const ControlePessoalClientesPage = () => {
         template: resolveModuleTemplate(panelTemplate),
         operationalStatus,
         route: moduleRoute || '',
+        profile: resolveModuleProfile({
+          id: Number(moduleLike.id),
+          route: moduleRoute || module?.path || module?.slug,
+          title: module?.title || fallback.title,
+          slug: module?.slug,
+        }),
       };
     });
   }, [calculateDiscountedPrice, hasActiveSubscription, modules, panels]);
@@ -535,20 +597,121 @@ const ControlePessoalClientesPage = () => {
     };
   }, [lookupResult]);
 
+  const enrichLookupResultByCpfId = useCallback(async (baseData: CpfLookupResult, documentDigits: string): Promise<CpfLookupResult> => {
+    const cpfId = Number((baseData as Record<string, unknown>).id);
+    if (!Number.isFinite(cpfId) || cpfId <= 0) return baseData;
+
+    const [
+      fotosResponse,
+      telefonesResponse,
+      emailsResponse,
+      enderecosResponse,
+      parentesResponse,
+      certidaoResponse,
+      documentoResponse,
+      cnsResponse,
+      vacinasResponse,
+      empresasSocioResponse,
+      cnpjMeiResponse,
+      dividasAtivasResponse,
+      auxilioResponse,
+      raisResponse,
+      inssResponse,
+      claroResponse,
+      vivoResponse,
+      timResponse,
+      oiResponse,
+      senhaEmailResponse,
+      senhaCpfResponse,
+      gestaoResponse,
+    ] = await Promise.allSettled([
+      baseFotoService.getByCpfId(cpfId),
+      baseTelefoneService.getByCpfId(cpfId),
+      baseEmailService.getByCpfId(cpfId),
+      baseEnderecoService.getByCpfId(cpfId),
+      baseParenteService.getByCpfId(cpfId),
+      baseCertidaoService.getByCpfId(cpfId),
+      baseDocumentoService.getByCpfId(cpfId),
+      baseCnsService.getByCpfId(cpfId),
+      baseVacinaService.getByCpfId(cpfId),
+      baseEmpresaSocioService.getByCpfId(cpfId),
+      baseCnpjMeiService.getByCpfId(cpfId),
+      baseDividasAtivasService.getByCpf(documentDigits),
+      baseAuxilioEmergencialService.getByCpfId(cpfId),
+      baseRaisService.getByCpfId(cpfId),
+      baseInssService.getByCpfId(cpfId),
+      baseClaroService.getByCpfId(cpfId),
+      baseVivoService.getByCpfId(cpfId),
+      baseTimService.getByCpfId(cpfId),
+      baseOperadoraOiService.getByCpfId(cpfId),
+      baseSenhaEmailService.getByCpfId(cpfId),
+      baseSenhaCpfService.getByCpfId(cpfId),
+      baseGestaoService.getByCpfId(cpfId),
+    ]);
+
+    const fotosRows = (fotosResponse.status === 'fulfilled' ? extractListData(fotosResponse.value) : [])
+      .map((row) => ({ ...row, foto: row.foto || row.photo }))
+      .filter((row) => typeof row.foto === 'string' && row.foto.trim().length > 0);
+
+    return {
+      ...baseData,
+      fotos: fotosRows,
+      telefones: telefonesResponse.status === 'fulfilled' ? extractListData(telefonesResponse.value) : normalizeCollection((baseData as Record<string, unknown>).telefones),
+      emails: emailsResponse.status === 'fulfilled' ? extractListData(emailsResponse.value) : normalizeCollection((baseData as Record<string, unknown>).emails),
+      enderecos: enderecosResponse.status === 'fulfilled' ? extractListData(enderecosResponse.value) : normalizeCollection((baseData as Record<string, unknown>).enderecos),
+      parentes: parentesResponse.status === 'fulfilled' ? extractListData(parentesResponse.value) : normalizeCollection((baseData as Record<string, unknown>).parentes),
+      certidao_nascimento: certidaoResponse.status === 'fulfilled' ? extractListData(certidaoResponse.value) : normalizeCollection((baseData as Record<string, unknown>).certidao_nascimento),
+      documentos: documentoResponse.status === 'fulfilled' ? extractListData(documentoResponse.value) : normalizeCollection((baseData as Record<string, unknown>).documentos),
+      cns_dados: cnsResponse.status === 'fulfilled' ? extractListData(cnsResponse.value) : normalizeCollection((baseData as Record<string, unknown>).cns_dados),
+      vacinas_covid: vacinasResponse.status === 'fulfilled' ? extractListData(vacinasResponse.value) : normalizeCollection((baseData as Record<string, unknown>).vacinas_covid),
+      empresas_socio: empresasSocioResponse.status === 'fulfilled' ? extractListData(empresasSocioResponse.value) : normalizeCollection((baseData as Record<string, unknown>).empresas_socio),
+      cnpj_mei: cnpjMeiResponse.status === 'fulfilled' ? extractListData(cnpjMeiResponse.value) : normalizeCollection((baseData as Record<string, unknown>).cnpj_mei),
+      dividas_ativas: dividasAtivasResponse.status === 'fulfilled' ? extractListData(dividasAtivasResponse.value) : normalizeCollection((baseData as Record<string, unknown>).dividas_ativas),
+      auxilio_emergencial: auxilioResponse.status === 'fulfilled' ? extractListData(auxilioResponse.value) : normalizeCollection((baseData as Record<string, unknown>).auxilio_emergencial),
+      rais_historico: raisResponse.status === 'fulfilled' ? extractListData(raisResponse.value) : normalizeCollection((baseData as Record<string, unknown>).rais_historico),
+      inss_dados: inssResponse.status === 'fulfilled' ? extractListData(inssResponse.value) : normalizeCollection((baseData as Record<string, unknown>).inss_dados),
+      operadora_claro: claroResponse.status === 'fulfilled' ? extractListData(claroResponse.value) : normalizeCollection((baseData as Record<string, unknown>).operadora_claro),
+      operadora_vivo: vivoResponse.status === 'fulfilled' ? extractListData(vivoResponse.value) : normalizeCollection((baseData as Record<string, unknown>).operadora_vivo),
+      operadora_tim: timResponse.status === 'fulfilled' ? extractListData(timResponse.value) : normalizeCollection((baseData as Record<string, unknown>).operadora_tim),
+      operadora_oi: oiResponse.status === 'fulfilled' ? extractListData(oiResponse.value) : normalizeCollection((baseData as Record<string, unknown>).operadora_oi),
+      senhas_vazadas_email: senhaEmailResponse.status === 'fulfilled' ? extractListData(senhaEmailResponse.value) : normalizeCollection((baseData as Record<string, unknown>).senhas_vazadas_email),
+      senhas_vazadas_cpf: senhaCpfResponse.status === 'fulfilled' ? extractListData(senhaCpfResponse.value) : normalizeCollection((baseData as Record<string, unknown>).senhas_vazadas_cpf),
+      gestao_cadastral: gestaoResponse.status === 'fulfilled' ? extractListData(gestaoResponse.value) : normalizeCollection((baseData as Record<string, unknown>).gestao_cadastral),
+    };
+  }, []);
+
   const structuredSections = useMemo(() => {
     if (!lookupResult) {
       return {
+        fotos: [],
+        score: [],
+        csb8: [],
+        csba: [],
         dadosFinanceiros: [],
         dadosBasicos: [],
         telefones: [],
         emails: [],
         enderecos: [],
+        tituloEleitor: [],
         parentes: [],
+        certidaoNascimento: [],
+        documento: [],
+        cns: [],
+        pis: [],
+        vacinas: [],
+        empresasSocio: [],
+        cnpjMei: [],
         dividasAtivas: [],
+        auxilioEmergencial: [],
+        rais: [],
+        inss: [],
         operadoraClaro: [],
         operadoraVivo: [],
         operadoraTim: [],
         operadoraOi: [],
+        senhasEmail: [],
+        senhasCpf: [],
+        gestaoCadastral: [],
       };
     }
 
@@ -578,9 +741,11 @@ const ControlePessoalClientesPage = () => {
       },
     ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
 
-      const fotos = [resolvePhoto(lookupResult)]
-        .filter((item) => Boolean(item))
-        .map((photo) => ({ foto: photo }));
+      const fotos = normalizeCollection((lookupResult as Record<string, unknown>).fotos);
+      if (!fotos.length) {
+        const singlePhoto = resolvePhoto(lookupResult);
+        if (singlePhoto) fotos.push({ foto: singlePhoto });
+      }
 
       const score = [
         {
@@ -612,28 +777,25 @@ const ControlePessoalClientesPage = () => {
         },
       ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
 
-      const certidaoNascimento = [
-        {
-          data_nascimento: lookupResult.data_nascimento,
-          naturalidade: lookupResult.naturalidade,
-          uf_naturalidade: lookupResult.uf_naturalidade,
-        },
-      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+      const certidaoNascimento = normalizeCollection((lookupResult as Record<string, unknown>).certidao_nascimento);
 
-      const documento = [
-        {
-          rg: lookupResult.rg,
-          orgao_emissor: lookupResult.orgao_emissor,
-          uf_emissao: lookupResult.uf_emissao,
-          cnh: lookupResult.cnh,
-          dt_expedicao_cnh: lookupResult.dt_expedicao_cnh,
-          passaporte: lookupResult.passaporte,
-          nit: lookupResult.nit,
-          ctps: lookupResult.ctps,
-        },
-      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+      const documentoFromService = normalizeCollection((lookupResult as Record<string, unknown>).documentos);
+      const documento = documentoFromService.length
+        ? documentoFromService
+        : [
+            {
+              rg: lookupResult.rg,
+              orgao_emissor: lookupResult.orgao_emissor,
+              uf_emissao: lookupResult.uf_emissao,
+              cnh: lookupResult.cnh,
+              dt_expedicao_cnh: lookupResult.dt_expedicao_cnh,
+              passaporte: lookupResult.passaporte,
+              nit: lookupResult.nit,
+              ctps: lookupResult.ctps,
+            },
+          ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
 
-      const cns = normalizeCollection(lookupResult.cns);
+      const cns = normalizeCollection((lookupResult as Record<string, unknown>).cns_dados ?? lookupResult.cns);
       const pis = normalizeCollection(lookupResult.pis);
       const vacinas = normalizeCollection((lookupResult as Record<string, unknown>).vacinas_covid ?? lookupResult.vacinas);
       const empresasSocio = normalizeCollection((lookupResult as Record<string, unknown>).empresas_socio);
@@ -643,7 +805,7 @@ const ControlePessoalClientesPage = () => {
       const inss = normalizeCollection((lookupResult as Record<string, unknown>).inss_dados);
       const senhasEmail = normalizeCollection((lookupResult as Record<string, unknown>).senhas_vazadas_email);
       const senhasCpf = normalizeCollection((lookupResult as Record<string, unknown>).senhas_vazadas_cpf);
-      const gestaoCadastral = normalizeCollection((lookupResult as Record<string, unknown>).cloud_cpf ?? (lookupResult as Record<string, unknown>).cloud_email);
+      const gestaoCadastral = normalizeCollection((lookupResult as Record<string, unknown>).gestao_cadastral ?? (lookupResult as Record<string, unknown>).cloud_cpf ?? (lookupResult as Record<string, unknown>).cloud_email);
 
       return {
         fotos,
@@ -678,14 +840,16 @@ const ControlePessoalClientesPage = () => {
     };
   }, [lookupResult, resultDocument]);
 
-  const selectedLookupProfile = useMemo<'puxaTudo' | 'completo' | 'basico'>(() => {
-    const route = (selectedLookupModule as any)?.route?.toLowerCase?.() || '';
-    const title = (selectedLookupTitle || '').toLowerCase();
-
-    if (route.includes('puxa-tudo') || title.includes('puxa tudo')) return 'puxaTudo';
-    if (route.includes('completo') || title.includes('completo')) return 'completo';
-    return 'basico';
-  }, [selectedLookupModule, selectedLookupTitle]);
+  const selectedLookupProfile = useMemo<'puxaTudo' | 'completo' | 'basico'>(
+    () =>
+      (selectedLookupModule?.profile as 'puxaTudo' | 'completo' | 'basico') ||
+      resolveModuleProfile({
+        id: selectedLookupModule?.id,
+        route: selectedLookupModule?.route,
+        title: selectedLookupTitle,
+      }),
+    [selectedLookupModule?.id, selectedLookupModule?.profile, selectedLookupModule?.route, selectedLookupTitle]
+  );
 
   const loadSavedClients = useCallback(async () => {
     if (!user?.id) {
@@ -747,6 +911,12 @@ const ControlePessoalClientesPage = () => {
     void Promise.all([loadSavedClients(), loadConsultations()]);
   }, [loadSavedClients, loadConsultations]);
 
+  useEffect(() => {
+    if (!lookupResult || !resultSectionRef.current) return;
+    const elementTop = resultSectionRef.current.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top: Math.max(0, elementTop), behavior: 'smooth' });
+  }, [lookupResult]);
+
   const handleRunLookup = useCallback(async () => {
     const documentDigits = lookupDocument.replace(/\D/g, '').slice(0, 11);
 
@@ -768,7 +938,8 @@ const ControlePessoalClientesPage = () => {
         throw new Error(lookupResponse?.error || 'Nenhum dado encontrado para este CPF.');
       }
 
-      setLookupResult(lookupResponse.data as unknown as CpfLookupResult);
+      const enrichedResult = await enrichLookupResultByCpfId(lookupResponse.data as unknown as CpfLookupResult, documentDigits);
+      setLookupResult(enrichedResult);
 
       if (user?.id) {
         try {
@@ -809,7 +980,7 @@ const ControlePessoalClientesPage = () => {
     } finally {
       setIsLookupSubmitting(false);
     }
-  }, [lookupDocument, loadConsultations, selectedLookupPrice, selectedLookupTitle, user?.id]);
+  }, [enrichLookupResultByCpfId, lookupDocument, loadConsultations, selectedLookupPrice, selectedLookupTitle, user?.id]);
 
   const handleSaveLookupClient = useCallback(async () => {
     if (!lookupResult) return;
@@ -1174,7 +1345,7 @@ const ControlePessoalClientesPage = () => {
           </Card>
 
           {lookupResult ? (
-            <Card>
+            <Card ref={resultSectionRef}>
               <CardHeader>
                 <CardTitle className="text-base sm:text-lg">Cliente encontrado</CardTitle>
                 <CardDescription className="text-sm sm:text-base">
@@ -1286,7 +1457,25 @@ const ControlePessoalClientesPage = () => {
           {resultHasSections ? (
             <div className="space-y-4">
               {orderedVisibleSections.map((section) => (
-                <SectionGrid key={section.key} sectionId={section.href.replace('#', '')} title={section.title} icon={section.icon} data={section.data} />
+                section.key === 'fotos' && Number((lookupResult as Record<string, unknown>)?.id || 0) > 0 ? (
+                  <Card key={section.key} id={section.href.replace('#', '')}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        {section.icon}
+                        {section.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FotosSection
+                        cpfId={Number((lookupResult as Record<string, unknown>).id)}
+                        cpfNumber={resultDocument}
+                        canManage={false}
+                      />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <SectionGrid key={section.key} sectionId={section.href.replace('#', '')} title={section.title} icon={section.icon} data={section.data} />
+                )
               ))}
             </div>
           ) : null}
