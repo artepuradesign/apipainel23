@@ -807,7 +807,7 @@ const ControlePessoalClientesPage = () => {
                         className={cn(
                           'rounded-xl transition-all',
                           selected
-                            ? 'opacity-100'
+                            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                             : 'hover:opacity-100 opacity-95'
                         )}
                       >
@@ -822,14 +822,14 @@ const ControlePessoalClientesPage = () => {
                             operationalStatus: moduleCard.operationalStatus,
                             iconSize: 'medium',
                             showDescription: true,
-                            descriptionLines: 3,
-                            showActionButton: true,
-                            actionLabel: selected ? 'Selecionado' : 'Selecionar',
                             icon: moduleCard.icon,
                             color: moduleCard.color,
                           }}
                           template={moduleCard.template}
                         />
+                        <Badge variant={selected ? 'default' : 'secondary'} className="absolute left-2 top-2 z-10 text-[10px]">
+                          {selected ? 'Selecionado' : `ID ${moduleCard.id}`}
+                        </Badge>
                       </div>
                     </div>
                   );

@@ -21,9 +21,6 @@ interface ModuleCardTemplatesProps {
     originalPrice?: string;
     hasActivePlan?: boolean;
     discountPercentage?: number;
-    showActionButton?: boolean;
-    actionLabel?: string;
-    descriptionLines?: 2 | 3;
   };
   template: 'corporate' | 'creative' | 'minimal' | 'modern' | 'elegant' | 'forest' | 'rose' | 'cosmic' | 'neon' | 'sunset' | 'arctic' | 'volcano' | 'matrix';
   theme?: {
@@ -256,7 +253,6 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
   const contentPaddingClass = "p-3";
   const titleClass = "text-sm leading-5 line-clamp-1 min-h-[1.25rem] !whitespace-normal !text-clip";
   const descriptionClass = "text-xs";
-  const descriptionClampClass = module.descriptionLines === 3 ? 'line-clamp-3 min-h-[3rem]' : 'line-clamp-2 min-h-[2rem]';
   const priceClass = "text-sm";
   const originalPriceClass = "text-xs";
   const badgeClass = "text-[10px]";
@@ -297,14 +293,12 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
           </div>
           <div className="flex-1 flex flex-col pt-14">
            <h3 className={`font-semibold ${titleClass} ${styles.text} mb-2 mt-1 truncate`}>{module.title}</h3>
-           <p className={`${descriptionClass} ${styles.textMuted} ${descriptionClampClass} mb-3`}>
+           <p className={`${descriptionClass} ${styles.textMuted} line-clamp-2 mb-3 min-h-[2rem]`}>
               {module.description}
             </p>
-            {module.showActionButton !== false && (
-              <Button className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}>
-                {module.actionLabel || 'Acessar'}
-              </Button>
-            )}
+           <Button className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}>
+              Acessar
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -345,15 +339,13 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
           </div>
           <div className="relative z-10 h-full flex flex-col pt-14">
            <h3 className={`${titleClass} font-bold mb-2 mt-1 truncate`}>{module.title}</h3>
-           <p className={`${descriptionClass} text-white/90 mb-3 ${descriptionClampClass}`}>
+           <p className={`${descriptionClass} text-white/90 mb-3 line-clamp-2 min-h-[2rem]`}>
               {module.description}
             </p>
-            {module.showActionButton !== false && (
-              <Button className={`w-full ${buttonClass} ${styles.button} group mt-auto mb-1`}>
-                <span>{module.actionLabel || 'Acessar'}</span>
-                <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            )}
+           <Button className={`w-full ${buttonClass} ${styles.button} group mt-auto mb-1`}>
+              <span>Acessar</span>
+              <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -393,18 +385,16 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
           </div>
           <div className="flex-1 flex flex-col pt-14">
            <h3 className={`font-semibold ${titleClass} ${styles.text} mb-2 mt-1 truncate`}>{module.title}</h3>
-           <p className={`${descriptionClass} ${styles.textMuted} ${descriptionClampClass} mb-3`}>
+           <p className={`${descriptionClass} ${styles.textMuted} line-clamp-2 mb-3 min-h-[2rem]`}>
               {module.description}
             </p>
-            {module.showActionButton !== false && (
-              <Button 
-                size="sm" 
-                variant="outline" 
-               className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}
-              >
-                {module.actionLabel || 'Acessar'}
-              </Button>
-            )}
+            <Button 
+              size="sm" 
+              variant="outline" 
+             className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}
+            >
+              Acessar
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -447,14 +437,12 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
            <h3 className={`font-semibold ${titleClass} ${styles.text} mb-2 mt-1 truncate`}>
               {module.title}
             </h3>
-           <p className={`${descriptionClass} ${styles.textMuted} ${descriptionClampClass} mb-3`}>
+           <p className={`${descriptionClass} ${styles.textMuted} line-clamp-2 mb-3 min-h-[2rem]`}>
               {module.description}
             </p>
-            {module.showActionButton !== false && (
-              <Button className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}>
-                {module.actionLabel || 'Acessar'}
-              </Button>
-            )}
+           <Button className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}>
+              Acessar
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -497,14 +485,12 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
            <h3 className={`font-semibold ${titleClass} ${styles.text} mb-2 mt-1 truncate font-mono`}>
               {module.title.toUpperCase().replace(/\s+/g, '_')}.EXE
             </h3>
-           <p className={`${descriptionClass} ${styles.textMuted} ${descriptionClampClass} mb-3 font-mono`}>
+           <p className={`${descriptionClass} ${styles.textMuted} line-clamp-2 mb-3 font-mono min-h-[2rem]`}>
               // {module.description}
             </p>
-            {module.showActionButton !== false && (
-              <Button className={`w-full ${buttonClass} ${styles.button} font-mono mt-auto mb-1`}>
-                {`> ${(module.actionLabel || 'Acessar').toUpperCase()}`}
-              </Button>
-            )}
+           <Button className={`w-full ${buttonClass} ${styles.button} font-mono mt-auto mb-1`}>
+              {'>'} ACESSAR
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -547,14 +533,12 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
            <h3 className={`font-semibold ${titleClass} ${styles.text} mb-2 mt-1 truncate`}>
               {module.title}
             </h3>
-           <p className={`${descriptionClass} ${styles.textMuted} ${descriptionClampClass} mb-3`}>
+           <p className={`${descriptionClass} ${styles.textMuted} line-clamp-2 mb-3 min-h-[2rem]`}>
               {module.description}
             </p>
-            {module.showActionButton !== false && (
-              <Button className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}>
-                {module.actionLabel || 'Acessar'}
-              </Button>
-            )}
+           <Button className={`w-full ${buttonClass} ${styles.button} mt-auto mb-1`}>
+              Acessar
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -597,19 +581,17 @@ const ModuleCardTemplates = ({ module, template, theme, isDarkMode: isDarkModePr
             {module.title}
           </h3>
           
-         <p className={`${descriptionClass} ${styles.textMuted} group-hover:text-gray-700 dark:group-hover:text-gray-300 mb-3 transition-colors ${descriptionClampClass}`}>
+         <p className={`${descriptionClass} ${styles.textMuted} group-hover:text-gray-700 dark:group-hover:text-gray-300 mb-3 transition-colors line-clamp-2 min-h-[2rem]`}>
             {module.description}
           </p>
-
-          {module.showActionButton !== false && (
-            <Button 
-              size="sm" 
-              variant="outline" 
-             className={`w-full ${buttonClass} ${styles.button} group-hover:bg-purple-800 group-hover:text-white transition-colors mt-auto mb-1`}
-            >
-              {module.actionLabel || 'Acessar'}
-            </Button>
-          )}
+          
+          <Button 
+            size="sm" 
+            variant="outline" 
+           className={`w-full ${buttonClass} ${styles.button} group-hover:bg-purple-800 group-hover:text-white transition-colors mt-auto mb-1`}
+          >
+            Acessar
+          </Button>
         </div>
       </CardContent>
     </Card>
