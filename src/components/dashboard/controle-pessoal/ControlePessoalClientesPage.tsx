@@ -318,7 +318,8 @@ const ControlePessoalClientesPage = () => {
       const discountPercentage = originalPrice > 0 && discountResult.hasDiscount
         ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
         : undefined;
-      const operationalStatus = module?.operational_status === 'maintenance' ? 'manutencao' : module?.operational_status === 'off' ? 'off' : 'on';
+      const operationalStatus: 'on' | 'off' | 'manutencao' =
+        module?.operational_status === 'maintenance' ? 'manutencao' : module?.operational_status === 'off' ? 'off' : 'on';
 
       return {
         id: moduleId,
