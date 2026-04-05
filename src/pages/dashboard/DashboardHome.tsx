@@ -86,6 +86,18 @@ const DashboardHome = () => {
     return IconComponent || Icons.Package;
   };
 
+  const handlePanelAnchorClick = (panelId: number) => {
+    const element = document.getElementById(`panel-${panelId}`);
+    if (!element) return;
+
+    const topOffset = 88;
+    const elementTop = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({
+      top: Math.max(elementTop - topOffset, 0),
+      behavior: 'smooth',
+    });
+  };
+
   useEffect(() => {
     if (user) {
       loadUserData();
@@ -238,14 +250,16 @@ const DashboardHome = () => {
               const Icon = getIconComponent(panel.icon);
 
               return (
-                <div
+                <button
+                  type="button"
                   key={panel.id}
+                  onClick={() => handlePanelAnchorClick(panel.id)}
                   className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2"
                   title={panel.name}
                 >
                   <Icon className="h-4 w-4 text-primary" />
                   <span className="text-xs font-medium text-foreground sm:text-sm">{panel.name}</span>
-                </div>
+                </button>
               );
             })}
           </div>
