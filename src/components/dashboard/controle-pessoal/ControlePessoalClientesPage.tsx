@@ -1165,39 +1165,49 @@ const ControlePessoalClientesPage = () => {
               <p className="text-sm text-muted-foreground">Nenhum cliente salvo até o momento.</p>
             ) : (
               savedClientsWithProfile.map((client) => (
-                <button
+                <div
                   key={client.id}
-                  type="button"
-                  onClick={() => handleOpenSavedClient(client)}
-                  className={`w-full rounded-xl border p-4 text-left transition-colors ${selectedSavedClientId === client.id ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/20'}`}
+                  className={`w-full rounded-xl border p-4 transition-colors ${selectedSavedClientId === client.id ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/20'}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="shrink-0">
-                      {client.profilePhoto ? (
-                        <img
-                          src={client.profilePhoto}
-                          alt={`Foto de ${client.title}`}
-                          className="h-16 w-16 rounded-full border border-border object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-border bg-muted/40">
-                          <UserCircle className="h-8 w-8 text-muted-foreground" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm font-semibold sm:text-base truncate">{client.title}</p>
-                        <Badge variant="secondary">{formatDateTime(client.createdAt)}</Badge>
+                    <button type="button" onClick={() => handleOpenSavedClient(client)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
+                      <div className="shrink-0">
+                        {client.profilePhoto ? (
+                          <img
+                            src={client.profilePhoto}
+                            alt={`Foto de ${client.title}`}
+                            className="h-16 w-16 rounded-full border border-border object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-border bg-muted/40">
+                            <UserCircle className="h-8 w-8 text-muted-foreground" />
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground sm:text-sm">CPF: {client.document || 'Não informado'}</p>
-                      <p className="text-xs text-muted-foreground sm:text-sm">Telefone: {client.profilePhone}</p>
-                      <p className="text-xs text-muted-foreground sm:text-sm">Email: {client.profileEmail}</p>
-                      <p className="text-xs text-muted-foreground sm:text-sm">Módulo: {client.moduleTitle || (client.manual ? 'Cadastro Manual' : 'Consulta CPF')}</p>
-                    </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold sm:text-base truncate">{client.title}</p>
+                          <Badge variant="secondary">{formatDateTime(client.createdAt)}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground sm:text-sm">CPF: {client.document || 'Não informado'}</p>
+                        <p className="text-xs text-muted-foreground sm:text-sm">Telefone: {client.profilePhone}</p>
+                        <p className="text-xs text-muted-foreground sm:text-sm">Email: {client.profileEmail}</p>
+                        <p className="text-xs text-muted-foreground sm:text-sm">Módulo: {client.moduleTitle || (client.manual ? 'Cadastro Manual' : 'Consulta CPF')}</p>
+                      </div>
+                    </button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      aria-label={`Excluir cliente ${client.title}`}
+                      onClick={() => void handleDeleteSavedClient(client)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </button>
+                </div>
               ))
             )}
           </CardContent>
