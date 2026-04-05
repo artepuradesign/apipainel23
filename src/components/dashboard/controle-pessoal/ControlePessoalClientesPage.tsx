@@ -42,6 +42,7 @@ import ScoreGaugeCard from '@/components/dashboard/ScoreGaugeCard';
 import ModuleCardTemplates from '@/components/configuracoes/personalization/ModuleCardTemplates';
 import ModuleGridWrapper from '@/components/configuracoes/personalization/ModuleGridWrapper';
 import { cn } from '@/lib/utils';
+import { smoothScrollToHash } from '@/utils/smoothScroll';
 
 type CpfLookupResult = Record<string, unknown>;
 type ClientStatus = 'prioridade-alta' | 'prioridade-media' | 'prioridade-baixa' | 'em-andamento' | 'concluido';
@@ -242,8 +243,8 @@ const extractResultContact = (result: CpfLookupResult | null) => {
   };
 };
 
-const SectionGrid = ({ title, icon, data }: { title: string; icon: React.ReactNode; data: Array<Record<string, unknown>> }) => (
-  <Card>
+const SectionGrid = ({ title, icon, data, sectionId }: { title: string; icon: React.ReactNode; data: Array<Record<string, unknown>>; sectionId?: string }) => (
+  <Card id={sectionId}>
     <CardHeader className="pb-3">
       <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
         {icon}
@@ -298,6 +299,20 @@ const sectionMetaByKey: Record<StructuredSectionKey, { title: string; icon: Reac
   operadoraVivo: { title: 'Operadora Vivo', icon: <Smartphone className="h-4 w-4" /> },
   operadoraTim: { title: 'Operadora TIM', icon: <Smartphone className="h-4 w-4" /> },
   operadoraOi: { title: 'Operadora OI', icon: <Smartphone className="h-4 w-4" /> },
+};
+
+const sectionAnchorByKey: Record<StructuredSectionKey, string> = {
+  dadosFinanceiros: '#dados-financeiros-section',
+  dadosBasicos: '#dados-basicos-section',
+  telefones: '#telefones-section',
+  emails: '#emails-section',
+  enderecos: '#enderecos-section',
+  parentes: '#parentes-section',
+  dividasAtivas: '#dividas-ativas-section',
+  operadoraClaro: '#operadora-claro-section',
+  operadoraVivo: '#operadora-vivo-section',
+  operadoraTim: '#operadora-tim-section',
+  operadoraOi: '#operadora-oi-section',
 };
 
 const sectionOrderByModuleId: Record<number, StructuredSectionKey[]> = {
@@ -781,11 +796,36 @@ const ControlePessoalClientesPage = () => {
       .filter((key) => structuredSections[key].length > 0)
       .map((key) => ({
         key,
+        href: sectionAnchorByKey[key],
         title: sectionMetaByKey[key].title,
         icon: sectionMetaByKey[key].icon,
         data: structuredSections[key],
+        count: structuredSections[key].length,
       }));
   }, [selectedLookupModuleId, structuredSections]);
+
+  const savedClientsWithProfile = useMemo(() => {
+    return savedClients.map((client) => {
+      const consultation = consultations.find((item) => {
+        if (client.consultationId && Number(item.id) === client.consultationId) return true;
+        const itemDocument = String(item.document || '').replace(/\D/g, '');
+        const clientDocument = String(client.document || '').replace(/\D/g, '');
+        return Boolean(itemDocument && clientDocument && itemDocument === clientDocument);
+      });
+
+      const resultData = consultation?.result_data;
+      const resultObj = resultData && typeof resultData === 'object' ? (resultData as CpfLookupResult) : null;
+      const profilePhoto = resolvePhoto(resultObj);
+      const resultContact = extractResultContact(resultObj);
+
+      return {
+        ...client,
+        profilePhoto,
+        profilePhone: client.phone || resultContact.phone || '-',
+        profileEmail: client.email || resultContact.email || '-',
+      };
+    });
+  }, [consultations, savedClients]);
 
   return (
     <div className={getDashboardPageClassName('standard')}>
@@ -809,7 +849,7 @@ const ControlePessoalClientesPage = () => {
         onBack={() => navigate('/dashboard')}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]">
+      <div className="grid grid-cols-1 gap-6">
         <div className="space-y-6">
           <Card ref={modulesSectionRef}>
             <CardHeader>
@@ -994,10 +1034,47 @@ const ControlePessoalClientesPage = () => {
             </Card>
           ) : null}
 
+          {orderedVisibleSections.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg text-success">Sucesso</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
+                  Clique nas sessões abaixo para navegar pelo resultado encontrado.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {orderedVisibleSections.map((section) => (
+                    <a
+                      key={section.key}
+                      href={section.href}
+                      className="no-underline"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        smoothScrollToHash(section.href, { duration: 250, offsetTop: 96 });
+                      }}
+                    >
+                      <span className="relative inline-flex">
+                        <Badge variant="secondary" className="bg-success text-success-foreground hover:bg-success/80 cursor-pointer transition-colors text-xs">
+                          {section.title}
+                        </Badge>
+                        {section.count > 0 ? (
+                          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground ring-1 ring-background">
+                            {section.count}
+                          </span>
+                        ) : null}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           {resultHasSections ? (
             <div className="space-y-4">
               {orderedVisibleSections.map((section) => (
-                <SectionGrid key={section.key} title={section.title} icon={section.icon} data={section.data} />
+                <SectionGrid key={section.key} sectionId={section.href.replace('#', '')} title={section.title} icon={section.icon} data={section.data} />
               ))}
             </div>
           ) : null}
@@ -1087,20 +1164,38 @@ const ControlePessoalClientesPage = () => {
             ) : savedClients.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhum cliente salvo até o momento.</p>
             ) : (
-              savedClients.map((client) => (
+              savedClientsWithProfile.map((client) => (
                 <button
                   key={client.id}
                   type="button"
                   onClick={() => handleOpenSavedClient(client)}
-                  className={`w-full rounded-md border p-3 text-left transition-colors ${selectedSavedClientId === client.id ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/20'}`}
+                  className={`w-full rounded-xl border p-4 text-left transition-colors ${selectedSavedClientId === client.id ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/20'}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold sm:text-base">{client.title}</p>
-                      <p className="text-xs text-muted-foreground sm:text-sm">{client.document || 'CPF não informado'}</p>
-                      <p className="text-xs text-muted-foreground sm:text-sm">{client.moduleTitle || (client.manual ? 'Cadastro Manual' : 'Consulta CPF')}</p>
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0">
+                      {client.profilePhoto ? (
+                        <img
+                          src={client.profilePhoto}
+                          alt={`Foto de ${client.title}`}
+                          className="h-16 w-16 rounded-full border border-border object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-border bg-muted/40">
+                          <UserCircle className="h-8 w-8 text-muted-foreground" />
+                        </span>
+                      )}
                     </div>
-                    <Badge variant="secondary">{formatDateTime(client.createdAt)}</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold sm:text-base truncate">{client.title}</p>
+                        <Badge variant="secondary">{formatDateTime(client.createdAt)}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground sm:text-sm">CPF: {client.document || 'Não informado'}</p>
+                      <p className="text-xs text-muted-foreground sm:text-sm">Telefone: {client.profilePhone}</p>
+                      <p className="text-xs text-muted-foreground sm:text-sm">Email: {client.profileEmail}</p>
+                      <p className="text-xs text-muted-foreground sm:text-sm">Módulo: {client.moduleTitle || (client.manual ? 'Cadastro Manual' : 'Consulta CPF')}</p>
+                    </div>
                   </div>
                 </button>
               ))
