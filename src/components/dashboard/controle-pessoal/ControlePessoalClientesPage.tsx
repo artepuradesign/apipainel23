@@ -16,6 +16,14 @@ import {
   Smartphone,
   Camera,
   Database,
+  FileText,
+  Building2,
+  Shield,
+  IdCard,
+  Pill,
+  Landmark,
+  KeyRound,
+  Briefcase,
   Pencil,
   Trash2,
 } from 'lucide-react';
@@ -73,7 +81,13 @@ interface SavedClient {
   status?: ClientStatus;
 }
 
-const allowedModuleIds = [156, 155, 21, 83];
+const relevantLookupRoutes = [
+  '/dashboard/consultar-cpf-puxa-tudo',
+  '/dashboard/consultar-cpf-completo',
+  '/dashboard/consultar-cpf-basico',
+  '/dashboard/consultar-cpf-simples',
+  '/dashboard/consultar-nome-completo',
+];
 
 type ModuleTemplateType = 'corporate' | 'creative' | 'minimal' | 'modern' | 'elegant' | 'forest' | 'rose' | 'cosmic' | 'neon' | 'sunset' | 'arctic' | 'volcano' | 'matrix';
 
@@ -94,10 +108,19 @@ const validModuleTemplates: ModuleTemplateType[] = [
 ];
 
 const moduleFallbackById: Record<number, { title: string; description: string; price: number; icon: string; color: string; panelId: number }> = {
+  154: { title: 'CPF Puxa Tudo', description: 'Consulta completa com todas as seções', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
   156: { title: 'Busca Nome', description: 'Consulta CPF e dados básicos', price: 0, icon: 'Search', color: '#7c3aed', panelId: 0 },
   155: { title: 'CPF Simples', description: 'Consulta CPF sem foto', price: 0, icon: 'UserRoundSearch', color: '#7c3aed', panelId: 0 },
   21: { title: 'CPF Básico', description: 'Consulta CPF com dados essenciais', price: 0, icon: 'Package', color: '#7c3aed', panelId: 0 },
   83: { title: 'CPF Completo', description: 'Consulta CPF completa', price: 0, icon: 'BarChart3', color: '#7c3aed', panelId: 0 },
+};
+
+const moduleFallbackByRoute: Record<string, { title: string; description: string; price: number; icon: string; color: string; panelId: number }> = {
+  '/dashboard/consultar-cpf-puxa-tudo': { title: 'CPF Puxa Tudo', description: 'Consulta completa com todas as seções', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
+  '/dashboard/consultar-cpf-completo': { title: 'CPF Completo', description: 'Consulta CPF completa', price: 0, icon: 'BarChart3', color: '#7c3aed', panelId: 0 },
+  '/dashboard/consultar-cpf-basico': { title: 'CPF Básico', description: 'Consulta CPF com dados essenciais', price: 0, icon: 'Package', color: '#7c3aed', panelId: 0 },
+  '/dashboard/consultar-cpf-simples': { title: 'CPF Simples', description: 'Consulta CPF sem foto', price: 0, icon: 'UserRoundSearch', color: '#7c3aed', panelId: 0 },
+  '/dashboard/consultar-nome-completo': { title: 'Busca Nome', description: 'Consulta CPF e dados básicos', price: 0, icon: 'Search', color: '#7c3aed', panelId: 0 },
 };
 
 const formatModulePrice = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(2).replace('.', ',');
@@ -275,51 +298,113 @@ const SectionGrid = ({ title, icon, data, sectionId }: { title: string; icon: Re
 );
 
 type StructuredSectionKey =
+  | 'fotos'
+  | 'score'
+  | 'csb8'
+  | 'csba'
   | 'dadosFinanceiros'
   | 'dadosBasicos'
   | 'telefones'
   | 'emails'
   | 'enderecos'
+  | 'tituloEleitor'
   | 'parentes'
+  | 'certidaoNascimento'
+  | 'documento'
+  | 'cns'
+  | 'pis'
+  | 'vacinas'
+  | 'empresasSocio'
+  | 'cnpjMei'
   | 'dividasAtivas'
+  | 'auxilioEmergencial'
+  | 'rais'
+  | 'inss'
   | 'operadoraClaro'
   | 'operadoraVivo'
   | 'operadoraTim'
-  | 'operadoraOi';
+  | 'operadoraOi'
+  | 'senhasEmail'
+  | 'senhasCpf'
+  | 'gestaoCadastral';
 
 const sectionMetaByKey: Record<StructuredSectionKey, { title: string; icon: React.ReactNode }> = {
+  fotos: { title: 'Fotos', icon: <Camera className="h-4 w-4" /> },
+  score: { title: 'Score', icon: <Shield className="h-4 w-4" /> },
+  csb8: { title: 'CSB8', icon: <Shield className="h-4 w-4" /> },
+  csba: { title: 'CSBA', icon: <Shield className="h-4 w-4" /> },
   dadosFinanceiros: { title: 'Dados Financeiros', icon: <Wallet className="h-4 w-4" /> },
   dadosBasicos: { title: 'Dados Básicos', icon: <Database className="h-4 w-4" /> },
   telefones: { title: 'Telefones', icon: <Phone className="h-4 w-4" /> },
   emails: { title: 'Emails', icon: <Mail className="h-4 w-4" /> },
   enderecos: { title: 'Endereços', icon: <MapPin className="h-4 w-4" /> },
+  tituloEleitor: { title: 'Título de Eleitor', icon: <FileText className="h-4 w-4" /> },
   parentes: { title: 'Parentes', icon: <Heart className="h-4 w-4" /> },
+  certidaoNascimento: { title: 'Certidão de Nascimento', icon: <FileText className="h-4 w-4" /> },
+  documento: { title: 'Documento', icon: <IdCard className="h-4 w-4" /> },
+  cns: { title: 'CNS', icon: <Pill className="h-4 w-4" /> },
+  pis: { title: 'PIS', icon: <Briefcase className="h-4 w-4" /> },
+  vacinas: { title: 'Vacinas', icon: <Pill className="h-4 w-4" /> },
+  empresasSocio: { title: 'Empresas Associadas (SÓCIO)', icon: <Building2 className="h-4 w-4" /> },
+  cnpjMei: { title: 'CNPJ MEI', icon: <Building2 className="h-4 w-4" /> },
   dividasAtivas: { title: 'Dívidas Ativas (SIDA)', icon: <AlertTriangle className="h-4 w-4" /> },
+  auxilioEmergencial: { title: 'Auxílio Emergencial', icon: <Wallet className="h-4 w-4" /> },
+  rais: { title: 'Rais - Histórico de Emprego', icon: <Briefcase className="h-4 w-4" /> },
+  inss: { title: 'INSS', icon: <Landmark className="h-4 w-4" /> },
   operadoraClaro: { title: 'Operadora Claro', icon: <Smartphone className="h-4 w-4" /> },
   operadoraVivo: { title: 'Operadora Vivo', icon: <Smartphone className="h-4 w-4" /> },
   operadoraTim: { title: 'Operadora TIM', icon: <Smartphone className="h-4 w-4" /> },
   operadoraOi: { title: 'Operadora OI', icon: <Smartphone className="h-4 w-4" /> },
+  senhasEmail: { title: 'Senhas de Email', icon: <KeyRound className="h-4 w-4" /> },
+  senhasCpf: { title: 'Senhas de CPF', icon: <KeyRound className="h-4 w-4" /> },
+  gestaoCadastral: { title: 'Gestão Cadastral', icon: <Database className="h-4 w-4" /> },
 };
 
 const sectionAnchorByKey: Record<StructuredSectionKey, string> = {
+  fotos: '#fotos-section',
+  score: '#score-section',
+  csb8: '#csb8-section',
+  csba: '#csba-section',
   dadosFinanceiros: '#dados-financeiros-section',
   dadosBasicos: '#dados-basicos-section',
   telefones: '#telefones-section',
   emails: '#emails-section',
   enderecos: '#enderecos-section',
+  tituloEleitor: '#titulo-eleitor-section',
   parentes: '#parentes-section',
+  certidaoNascimento: '#certidao-nascimento-section',
+  documento: '#documento-section',
+  cns: '#cns-section',
+  pis: '#pis-section',
+  vacinas: '#vacinas-section',
+  empresasSocio: '#empresas-socio-section',
+  cnpjMei: '#cnpj-mei-section',
   dividasAtivas: '#dividas-ativas-section',
+  auxilioEmergencial: '#auxilio-emergencial-section',
+  rais: '#rais-section',
+  inss: '#inss-section',
   operadoraClaro: '#operadora-claro-section',
   operadoraVivo: '#operadora-vivo-section',
   operadoraTim: '#operadora-tim-section',
   operadoraOi: '#operadora-oi-section',
+  senhasEmail: '#senhas-email-section',
+  senhasCpf: '#senhas-cpf-section',
+  gestaoCadastral: '#gestao-cadastral-section',
 };
 
-const sectionOrderByModuleId: Record<number, StructuredSectionKey[]> = {
-  156: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
-  155: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
-  21: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
-  83: ['dadosFinanceiros', 'dadosBasicos', 'telefones', 'emails', 'enderecos', 'parentes'],
+const sectionOrderByModuleProfile: Record<'puxaTudo' | 'completo' | 'basico', StructuredSectionKey[]> = {
+  puxaTudo: [
+    'fotos', 'score', 'csb8', 'csba', 'dadosFinanceiros', 'dadosBasicos', 'telefones', 'emails', 'enderecos',
+    'tituloEleitor', 'parentes', 'certidaoNascimento', 'documento', 'cns', 'pis', 'vacinas', 'empresasSocio', 'cnpjMei',
+    'dividasAtivas', 'auxilioEmergencial', 'rais', 'inss', 'operadoraClaro', 'operadoraVivo', 'operadoraTim', 'operadoraOi',
+    'senhasEmail', 'senhasCpf', 'gestaoCadastral',
+  ],
+  completo: [
+    'fotos', 'csb8', 'csba', 'dadosFinanceiros', 'dadosBasicos', 'telefones', 'emails', 'enderecos',
+    'tituloEleitor', 'parentes', 'certidaoNascimento', 'documento', 'cns', 'pis', 'vacinas', 'empresasSocio', 'cnpjMei',
+    'auxilioEmergencial', 'rais',
+  ],
+  basico: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
 };
 
 const ControlePessoalClientesPage = () => {
@@ -332,7 +417,7 @@ const ControlePessoalClientesPage = () => {
 
   const [savedClients, setSavedClients] = useState<SavedClient[]>([]);
   const [consultations, setConsultations] = useState<ConsultaCpf[]>([]);
-  const [selectedLookupModuleId, setSelectedLookupModuleId] = useState<number>(allowedModuleIds[0]);
+  const [selectedLookupModuleId, setSelectedLookupModuleId] = useState<number | null>(null);
   const [lookupDocument, setLookupDocument] = useState('');
   const [lookupResult, setLookupResult] = useState<CpfLookupResult | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -354,9 +439,34 @@ const ControlePessoalClientesPage = () => {
   });
 
   const selectedModuleCards = useMemo(() => {
-    return allowedModuleIds.map((moduleId) => {
-      const module = modules.find((item) => Number(item.id) === moduleId);
-      const fallback = moduleFallbackById[moduleId];
+    const normalizeRoute = (rawValue?: string | null) => {
+      if (!rawValue) return '';
+      const cleaned = rawValue.trim();
+      if (!cleaned) return '';
+      if (cleaned.startsWith('/dashboard/')) return cleaned;
+      if (cleaned.startsWith('dashboard/')) return `/${cleaned}`;
+      if (cleaned.startsWith('/')) return `/dashboard${cleaned}`;
+      return `/dashboard/${cleaned}`;
+    };
+
+    const selectedModules = modules
+      .filter((module) => {
+        const routes = [module.path, module.slug, module.api_endpoint].map((value) => normalizeRoute(String(value || '')));
+        return routes.some((route) => relevantLookupRoutes.includes(route));
+      })
+      .sort((a, b) => (Number(a.sort_order || 0) - Number(b.sort_order || 0)));
+
+    const baseList = selectedModules.length
+      ? selectedModules
+      : [154, 83, 21, 155, 156].map((moduleId) => ({ id: moduleId } as (typeof modules)[number]));
+
+    return baseList.map((moduleLike) => {
+      const module = modules.find((item) => Number(item.id) === Number(moduleLike.id));
+      const moduleRoute = [module?.path, module?.slug, module?.api_endpoint]
+        .map((value) => normalizeRoute(String(value || '')))
+        .find((route) => relevantLookupRoutes.includes(route));
+
+      const fallback = (moduleRoute ? moduleFallbackByRoute[moduleRoute] : undefined) || moduleFallbackById[Number(moduleLike.id)] || moduleFallbackByRoute['/dashboard/consultar-cpf-basico'];
       const originalPrice = Number(module?.price ?? fallback.price);
       const panelId = Number(module?.panel_id ?? fallback.panelId);
       const panelTemplate = panels.find((panel) => Number(panel.id) === panelId)?.template;
@@ -371,7 +481,7 @@ const ControlePessoalClientesPage = () => {
         module?.operational_status === 'maintenance' ? 'manutencao' : module?.operational_status === 'off' ? 'off' : 'on';
 
       return {
-        id: moduleId,
+        id: Number(moduleLike.id),
         title: module?.title || fallback.title,
         description: module?.description || fallback.description,
         price: finalPrice,
@@ -383,9 +493,17 @@ const ControlePessoalClientesPage = () => {
         color: module?.color || fallback.color,
         template: resolveModuleTemplate(panelTemplate),
         operationalStatus,
+        route: moduleRoute || '',
       };
     });
   }, [calculateDiscountedPrice, hasActiveSubscription, modules, panels]);
+
+  useEffect(() => {
+    if (!selectedModuleCards.length) return;
+    if (selectedLookupModuleId === null || !selectedModuleCards.some((module) => module.id === selectedLookupModuleId)) {
+      setSelectedLookupModuleId(selectedModuleCards[0].id);
+    }
+  }, [selectedLookupModuleId, selectedModuleCards]);
 
   const selectedLookupModule = useMemo(
     () => selectedModuleCards.find((module) => module.id === selectedLookupModuleId) || selectedModuleCards[0],
@@ -460,20 +578,114 @@ const ControlePessoalClientesPage = () => {
       },
     ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
 
-    return {
+      const fotos = [resolvePhoto(lookupResult)]
+        .filter((item) => Boolean(item))
+        .map((photo) => ({ foto: photo }));
+
+      const score = [
+        {
+          score: lookupResult.score,
+          poder_aquisitivo: lookupResult.poder_aquisitivo,
+          renda: lookupResult.renda,
+        },
+      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+
+      const csb8 = [
+        {
+          csb8: lookupResult.csb8,
+          csb8_faixa: lookupResult.csb8_faixa,
+        },
+      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+
+      const csba = [
+        {
+          csba: lookupResult.csba,
+          csba_faixa: lookupResult.csba_faixa,
+        },
+      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+
+      const tituloEleitor = [
+        {
+          titulo_eleitor: lookupResult.titulo_eleitor,
+          zona: lookupResult.zona,
+          secao: lookupResult.secao,
+        },
+      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+
+      const certidaoNascimento = [
+        {
+          data_nascimento: lookupResult.data_nascimento,
+          naturalidade: lookupResult.naturalidade,
+          uf_naturalidade: lookupResult.uf_naturalidade,
+        },
+      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+
+      const documento = [
+        {
+          rg: lookupResult.rg,
+          orgao_emissor: lookupResult.orgao_emissor,
+          uf_emissao: lookupResult.uf_emissao,
+          cnh: lookupResult.cnh,
+          dt_expedicao_cnh: lookupResult.dt_expedicao_cnh,
+          passaporte: lookupResult.passaporte,
+          nit: lookupResult.nit,
+          ctps: lookupResult.ctps,
+        },
+      ].filter((row) => Object.values(row).some((value) => value !== null && value !== undefined && value !== ''));
+
+      const cns = normalizeCollection(lookupResult.cns);
+      const pis = normalizeCollection(lookupResult.pis);
+      const vacinas = normalizeCollection((lookupResult as Record<string, unknown>).vacinas_covid ?? lookupResult.vacinas);
+      const empresasSocio = normalizeCollection((lookupResult as Record<string, unknown>).empresas_socio);
+      const cnpjMei = normalizeCollection((lookupResult as Record<string, unknown>).cnpj_mei);
+      const auxilioEmergencial = normalizeCollection((lookupResult as Record<string, unknown>).auxilio_emergencial);
+      const rais = normalizeCollection((lookupResult as Record<string, unknown>).rais_historico);
+      const inss = normalizeCollection((lookupResult as Record<string, unknown>).inss_dados);
+      const senhasEmail = normalizeCollection((lookupResult as Record<string, unknown>).senhas_vazadas_email);
+      const senhasCpf = normalizeCollection((lookupResult as Record<string, unknown>).senhas_vazadas_cpf);
+      const gestaoCadastral = normalizeCollection((lookupResult as Record<string, unknown>).cloud_cpf ?? (lookupResult as Record<string, unknown>).cloud_email);
+
+      return {
+        fotos,
+        score,
+        csb8,
+        csba,
       dadosFinanceiros,
       dadosBasicos,
       telefones: normalizeCollection(lookupResult.telefones ?? lookupResult.telefone),
       emails: normalizeCollection(lookupResult.emails ?? lookupResult.email),
       enderecos: normalizeCollection(lookupResult.enderecos ?? lookupResult.endereco),
+        tituloEleitor,
       parentes: normalizeCollection(lookupResult.parentes),
+        certidaoNascimento,
+        documento,
+        cns,
+        pis,
+        vacinas,
+        empresasSocio,
+        cnpjMei,
       dividasAtivas: normalizeCollection(lookupResult.dividas_ativas),
+        auxilioEmergencial,
+        rais,
+        inss,
       operadoraClaro: normalizeCollection(lookupResult.operadora_claro),
       operadoraVivo: normalizeCollection(lookupResult.operadora_vivo),
       operadoraTim: normalizeCollection(lookupResult.operadora_tim),
       operadoraOi: normalizeCollection((lookupResult as Record<string, unknown>).operadora_oi),
+        senhasEmail,
+        senhasCpf,
+        gestaoCadastral,
     };
   }, [lookupResult, resultDocument]);
+
+  const selectedLookupProfile = useMemo<'puxaTudo' | 'completo' | 'basico'>(() => {
+    const route = (selectedLookupModule as any)?.route?.toLowerCase?.() || '';
+    const title = (selectedLookupTitle || '').toLowerCase();
+
+    if (route.includes('puxa-tudo') || title.includes('puxa tudo')) return 'puxaTudo';
+    if (route.includes('completo') || title.includes('completo')) return 'completo';
+    return 'basico';
+  }, [selectedLookupModule, selectedLookupTitle]);
 
   const loadSavedClients = useCallback(async () => {
     if (!user?.id) {
@@ -784,14 +996,14 @@ const ControlePessoalClientesPage = () => {
   const resultHasSections = useMemo(
     () => {
       if (!lookupResult) return false;
-      const orderedKeys = sectionOrderByModuleId[selectedLookupModuleId] || sectionOrderByModuleId[21];
+      const orderedKeys = sectionOrderByModuleProfile[selectedLookupProfile];
       return orderedKeys.some((key) => structuredSections[key].length > 0);
     },
-    [lookupResult, selectedLookupModuleId, structuredSections]
+    [lookupResult, selectedLookupProfile, structuredSections]
   );
 
   const orderedVisibleSections = useMemo(() => {
-    const orderedKeys = sectionOrderByModuleId[selectedLookupModuleId] || sectionOrderByModuleId[21];
+    const orderedKeys = sectionOrderByModuleProfile[selectedLookupProfile];
     return orderedKeys
       .filter((key) => structuredSections[key].length > 0)
       .map((key) => ({
@@ -802,7 +1014,7 @@ const ControlePessoalClientesPage = () => {
         data: structuredSections[key],
         count: structuredSections[key].length,
       }));
-  }, [selectedLookupModuleId, structuredSections]);
+  }, [selectedLookupProfile, structuredSections]);
 
   const savedClientsWithProfile = useMemo(() => {
     return savedClients.map((client) => {
