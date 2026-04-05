@@ -113,11 +113,21 @@ const MenuSuperior = () => {
     <TooltipProvider delayDuration={300}>
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50',
+          'fixed inset-x-0 top-0 z-50 overflow-hidden',
           liquidGlassConfig.enabled ? 'liquid-glass-container' : 'bg-background',
           isHomePage ? 'border-b border-transparent' : liquidGlassConfig.enabled ? 'border-b border-white/20' : 'border-b border-border'
         )}
       >
+        {isHomePage && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(90deg, hsl(var(--background) / 0.96) 0%, hsl(var(--background) / 0.96) 44%, hsl(var(--background) / 0.92) 52%, hsl(var(--background) / 0) 62%)',
+            }}
+          />
+        )}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <div className="flex justify-between items-center h-16">
             <div className="hidden md:flex items-center space-x-4">
@@ -154,7 +164,7 @@ const MenuSuperior = () => {
                         type="button"
                         aria-label={content.openLanguage}
                         onClick={openLanguageModal}
-                        className="h-8 w-8 rounded-md flex items-center justify-center border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                        className="h-9 w-9 rounded-full flex items-center justify-center border border-border bg-background text-foreground hover:bg-muted transition-colors"
                       >
                         <span className="text-sm leading-none" aria-hidden="true">{selectedLanguageOption.flag}</span>
                       </button>
