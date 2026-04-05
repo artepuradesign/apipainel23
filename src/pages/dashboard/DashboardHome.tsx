@@ -227,8 +227,8 @@ const DashboardHome = () => {
     <ModuleTemplateProvider>
       <div className={getDashboardPageClassName('standard')}>
         <PageHeaderCard
-          title="Dashboard"
-          subtitle="Seus painéis ativos"
+          title="Painel Administrativo"
+          subtitle="Visão geral de caixa, transações e usuários online"
         />
 
         <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
