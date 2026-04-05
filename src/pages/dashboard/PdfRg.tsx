@@ -23,7 +23,6 @@ import { qrcodeRegistrationsService, type QrRegistration } from '@/services/qrco
 import QrCadastroCard from '@/components/qrcode/QrCadastroCard';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
 import LoadingScreen from '@/components/layout/LoadingScreen';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 const PHP_VALIDATION_BASE = 'https://qr.apipainel.com.br/qrvalidation';
 
@@ -892,8 +891,7 @@ const PdfRg = () => {
         </DialogContent>
       </Dialog>
 
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 

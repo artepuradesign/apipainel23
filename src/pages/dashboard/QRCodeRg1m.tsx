@@ -20,7 +20,6 @@ import { consultationApiService } from '@/services/consultationApiService';
 import { walletApiService } from '@/services/walletApiService';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
 import LoadingScreen from '@/components/layout/LoadingScreen';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 const PHP_API_BASE = 'https://qr.apipainel.com.br/qrcode';
 const PHP_VALIDATION_BASE = 'https://qr.apipainel.com.br/qrvalidation';
@@ -467,8 +466,7 @@ const QRCodeRg1m = () => {
       </div>
 
       {previewUrl && <PhotoEditorModal open={showPhotoEditor} onOpenChange={setShowPhotoEditor} imageUrl={previewUrl} fileName={formData.numeroDocumento || 'foto'} onSave={(editedFile) => { setFormData(prev => ({ ...prev, foto: editedFile })); const reader = new FileReader(); reader.onloadend = () => setPreviewUrl(reader.result as string); reader.readAsDataURL(editedFile); }} />}
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 

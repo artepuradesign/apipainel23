@@ -77,7 +77,6 @@ import { getFullApiUrl } from '@/utils/apiHelper';
 import { atitoConsultaCpfService } from '@/services/atitoConsultaCpfService';
 import SectionActionButtons from '@/components/dashboard/SectionActionButtons';
 import PisSection from '@/components/dashboard/PisSection';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
 import { smoothScrollToHash } from '@/utils/smoothScroll';
 
@@ -2832,8 +2831,7 @@ Todos os direitos reservados.`;
       </AlertDialog>
 
       {/* Scroll to Top Button */}
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 

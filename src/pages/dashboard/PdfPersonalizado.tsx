@@ -19,7 +19,6 @@ import { walletApiService } from '@/services/walletApiService';
 import { editarPdfService, type EditarPdfPedido } from '@/services/pdfPersonalizadoService';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
 import LoadingScreen from '@/components/layout/LoadingScreen';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 const MODULE_TITLE = 'PDF PERSONALIZADO';
 const MODULE_ROUTE = '/dashboard/pdf-personalizado';
@@ -748,8 +747,7 @@ const EditarPdf = () => {
         </DialogContent>
       </Dialog>
 
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 

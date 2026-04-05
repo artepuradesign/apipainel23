@@ -17,7 +17,6 @@ import { walletApiService } from '@/services/walletApiService';
 import { consultationApiService } from '@/services/consultationApiService';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
 import LoadingScreen from '@/components/layout/LoadingScreen';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 const PHP_API_BASE = 'https://qr.apipainel.com.br/qrcode';
 const PHP_VALIDATION_BASE = 'https://qr.apipainel.com.br/qrvalidation';
@@ -516,8 +515,7 @@ const QRCodeRgReativar = () => {
         </DialogContent>
       </Dialog>
 
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 

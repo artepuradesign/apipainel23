@@ -60,7 +60,6 @@ import SenhaCpfSection from '@/components/dashboard/SenhaCpfSection';
 import BoletimOcorrenciaBoSection from '@/components/dashboard/BoletimOcorrenciaBoSection';
 import GestaoSection from '@/components/dashboard/GestaoSection';
 import SectionActionButtons from '@/components/dashboard/SectionActionButtons';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 // ─── Section definitions ───────────────────────────────────────────────
 interface SectionOption {
@@ -1303,8 +1302,7 @@ const ConsultaPersonalizada = () => {
         </div>
       )}
 
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 

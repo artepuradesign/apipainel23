@@ -11,6 +11,7 @@ import { ModuleTemplateProvider } from '@/contexts/ModuleTemplateContext';
 import AuthWrapper from '@/components/AuthWrapper';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ScrollToTop from '@/components/ScrollToTop';
+import GlobalScrollToTop from '@/components/ui/scroll-to-top';
 import RequireSupportOrAdmin from '@/components/auth/RequireSupportOrAdmin';
 import SessionKickedModal from '@/components/notifications/SessionKickedModal';
 import MaintenanceGuard from '@/components/MaintenanceGuard';
@@ -233,6 +234,7 @@ function App() {
             <TooltipProvider>
               <Router>
                 <ScrollToTop />
+                <GlobalScrollToTop />
                 <SessionKickedModal />
                 <SessionNotification />
                 <AuthWrapper>

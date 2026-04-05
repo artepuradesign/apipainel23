@@ -26,7 +26,6 @@ import { getModulePrice } from '@/utils/modulePrice';
 import { useApiModules } from '@/hooks/useApiModules';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 import { buscaNomeService, NomeConsultaResultado, NomeConsultaResponse } from '@/services/buscaNomeService';
 import { parseFdxHtmlResults } from '@/utils/fdxHtmlResultsParser';
 
@@ -586,8 +585,7 @@ const ConsultarNomeCompleto = () => {
 
   return (
     <div className="space-y-3 md:space-y-4 max-w-full overflow-x-hidden">
-      <ScrollToTop />
-
+      
       {/* TÍTULO */}
       <SimpleTitleBar
         title={currentModule?.title || 'Consulta por Nome Completo'}
