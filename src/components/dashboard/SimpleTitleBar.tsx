@@ -102,10 +102,6 @@ const SimpleTitleBar = ({
     setIsMobileSubtitleOpen(false);
   };
   const handleActionBalloonClose = () => setActiveActionBalloon(null);
-  const handleSubtitlePreviewOpen = () => {
-    setActiveActionBalloon(null);
-    if (displaySubtitle) setIsMobileSubtitleOpen(true);
-  };
   const subtitlePreview = useMemo(() => {
     if (!displaySubtitle) return '';
     if (displaySubtitle.length <= 85) return displaySubtitle;
@@ -162,7 +158,6 @@ const SimpleTitleBar = ({
           return (
             <div 
               className="shrink-0 p-1 rounded-lg border"
-              onMouseEnter={handleSubtitlePreviewOpen}
           style={moduleColor ? getIconStyles() : undefined}
         >
           <span style={moduleColor ? { color: moduleColor } : undefined} className={!moduleColor ? "text-primary" : ""}>
@@ -177,7 +172,6 @@ const SimpleTitleBar = ({
           return (
             <div 
               className="shrink-0 p-1 rounded-lg border"
-              onMouseEnter={handleSubtitlePreviewOpen}
           style={moduleColor ? getIconStyles() : undefined}
         >
               <ModuleIcon 
@@ -236,8 +230,10 @@ const SimpleTitleBar = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setIsMobileSubtitleOpen((prev) => !prev)}
-            onMouseEnter={handleSubtitlePreviewOpen}
+            onClick={() => {
+              setActiveActionBalloon(null);
+              setIsMobileSubtitleOpen((prev) => !prev);
+            }}
             className="rounded-full h-8 w-8 shrink-0"
             aria-label="Ajuda"
           >
@@ -282,7 +278,7 @@ const SimpleTitleBar = ({
               <button
                 type="button"
                 onClick={() => setIsMobileSubtitleOpen(false)}
-                className="sm:hidden fixed inset-0 bg-foreground/45 z-10"
+                className="fixed inset-0 bg-foreground/45 z-10"
                 aria-label="Fechar destaque da descrição"
               />
               <div className="absolute top-full left-1/2 sm:left-auto sm:right-0 -translate-x-1/2 sm:translate-x-0 mt-2 w-[320px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-popover px-4 py-3 text-left shadow-md z-20 overflow-visible">
