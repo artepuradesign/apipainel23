@@ -35,14 +35,6 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
   const [isMobileViewport, setIsMobileViewport] = React.useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
   const [mobileBalloonTop, setMobileBalloonTop] = React.useState<number | undefined>(undefined);
   const helpButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const helpHoverTimerRef = React.useRef<number | null>(null);
-
-  const clearHelpHoverTimer = React.useCallback(() => {
-    if (helpHoverTimerRef.current !== null) {
-      window.clearTimeout(helpHoverTimerRef.current);
-      helpHoverTimerRef.current = null;
-    }
-  }, []);
 
   const updateMobileBalloonPosition = React.useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -62,8 +54,6 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
   }, [updateMobileBalloonPosition]);
 
   const toggleHelpBalloon = React.useCallback(() => {
-    clearHelpHoverTimer();
-
     if (isHelpBalloonOpen) {
       setIsHelpBalloonOpen(false);
       return;
@@ -71,15 +61,7 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
 
     updateMobileBalloonPosition();
     setIsHelpBalloonOpen(true);
-  }, [clearHelpHoverTimer, isHelpBalloonOpen, updateMobileBalloonPosition]);
-
-  const scheduleHelpBalloonOpen = React.useCallback(() => {
-    clearHelpHoverTimer();
-    helpHoverTimerRef.current = window.setTimeout(() => {
-      openHelpBalloon();
-      helpHoverTimerRef.current = null;
-    }, 2000);
-  }, [clearHelpHoverTimer, openHelpBalloon]);
+  }, [isHelpBalloonOpen, updateMobileBalloonPosition]);
 
   React.useEffect(() => {
     updateMobileBalloonPosition();
@@ -91,10 +73,6 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [updateMobileBalloonPosition]);
-
-  React.useEffect(() => {
-    return () => clearHelpHoverTimer();
-  }, [clearHelpHoverTimer]);
 
   React.useEffect(() => {
     if (!isHelpBalloonOpen || !description) {
@@ -153,11 +131,9 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
                   size="icon"
                   className="rounded-full h-8 w-8 shrink-0"
                   aria-label={`Ajuda sobre ${title}`}
-                  onMouseEnter={scheduleHelpBalloonOpen}
-                  onMouseLeave={clearHelpHoverTimer}
-                  onFocus={clearHelpHoverTimer}
-                  onBlur={clearHelpHoverTimer}
-                  onClick={toggleHelpBalloon}
+                  onClick={() => {
+                    openHelpBalloon();
+                  }}
                 >
                   <CircleHelp className="h-3.5 w-3.5" />
                 </Button>
@@ -194,7 +170,7 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsHelpBalloonOpen(false)}
-                className="sm:hidden fixed inset-0 bg-foreground/45 z-10"
+                className="fixed inset-0 bg-foreground/45 z-10"
                 aria-label="Fechar destaque da descrição"
               />
               <div
