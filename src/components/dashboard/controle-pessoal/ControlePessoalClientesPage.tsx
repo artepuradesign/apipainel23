@@ -28,6 +28,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApiModules } from '@/hooks/useApiModules';
+import { useApiPanels } from '@/hooks/useApiPanels';
+import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { getDashboardPageClassName } from '@/components/dashboard/layout/dashboardPageTemplate';
 import { formatCpf, formatPhone } from '@/utils/formatters';
 import { todayBrasilia } from '@/utils/timezone';
@@ -37,6 +39,9 @@ import { apiRequest } from '@/config/api';
 import { toast } from 'sonner';
 import FotosSection from '@/components/dashboard/FotosSection';
 import ScoreGaugeCard from '@/components/dashboard/ScoreGaugeCard';
+import ModuleCardTemplates from '@/components/configuracoes/personalization/ModuleCardTemplates';
+import ModuleGridWrapper from '@/components/configuracoes/personalization/ModuleGridWrapper';
+import { cn } from '@/lib/utils';
 
 type CpfLookupResult = Record<string, unknown>;
 type ClientStatus = 'prioridade-alta' | 'prioridade-media' | 'prioridade-baixa' | 'em-andamento' | 'concluido';
@@ -69,11 +74,38 @@ interface SavedClient {
 
 const allowedModuleIds = [156, 155, 21, 83];
 
-const moduleFallbackById: Record<number, { title: string; description: string; price: number }> = {
-  156: { title: 'Módulo 156', description: 'Consulta CPF', price: 0 },
-  155: { title: 'Módulo 155', description: 'Consulta CPF', price: 0 },
-  21: { title: 'Módulo 21', description: 'Consulta CPF', price: 0 },
-  83: { title: 'Módulo 83', description: 'Consulta CPF', price: 0 },
+type ModuleTemplateType = 'corporate' | 'creative' | 'minimal' | 'modern' | 'elegant' | 'forest' | 'rose' | 'cosmic' | 'neon' | 'sunset' | 'arctic' | 'volcano' | 'matrix';
+
+const validModuleTemplates: ModuleTemplateType[] = [
+  'corporate',
+  'creative',
+  'minimal',
+  'modern',
+  'elegant',
+  'forest',
+  'rose',
+  'cosmic',
+  'neon',
+  'sunset',
+  'arctic',
+  'volcano',
+  'matrix',
+];
+
+const moduleFallbackById: Record<number, { title: string; description: string; price: number; icon: string; color: string; panelId: number }> = {
+  156: { title: 'Busca Nome', description: 'Consulta CPF e dados básicos', price: 0, icon: 'Search', color: '#7c3aed', panelId: 0 },
+  155: { title: 'CPF Simples', description: 'Consulta CPF sem foto', price: 0, icon: 'UserRoundSearch', color: '#7c3aed', panelId: 0 },
+  21: { title: 'CPF Básico', description: 'Consulta CPF com dados essenciais', price: 0, icon: 'Package', color: '#7c3aed', panelId: 0 },
+  83: { title: 'CPF Completo', description: 'Consulta CPF completa', price: 0, icon: 'BarChart3', color: '#7c3aed', panelId: 0 },
+};
+
+const formatModulePrice = (value: number) => (Number.isFinite(value) ? value : 0).toFixed(2).replace('.', ',');
+
+const resolveModuleTemplate = (rawTemplate?: string | null): ModuleTemplateType => {
+  if (rawTemplate && validModuleTemplates.includes(rawTemplate as ModuleTemplateType)) {
+    return rawTemplate as ModuleTemplateType;
+  }
+  return 'modern';
 };
 
 const clientStatusOptions: { label: string; value: ClientStatus; badgeVariant: 'default' | 'secondary' | 'outline' | 'destructive' }[] = [
@@ -245,6 +277,8 @@ const ControlePessoalClientesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { modules } = useApiModules();
+  const { panels } = useApiPanels();
+  const { hasActiveSubscription, calculateDiscountedPrice } = useUserSubscription();
   const modulesSectionRef = useRef<HTMLDivElement | null>(null);
 
   const [savedClients, setSavedClients] = useState<SavedClient[]>([]);
@@ -274,15 +308,35 @@ const ControlePessoalClientesPage = () => {
     return allowedModuleIds.map((moduleId) => {
       const module = modules.find((item) => Number(item.id) === moduleId);
       const fallback = moduleFallbackById[moduleId];
+      const originalPrice = Number(module?.price ?? fallback.price);
+      const panelId = Number(module?.panel_id ?? fallback.panelId);
+      const panelTemplate = panels.find((panel) => Number(panel.id) === panelId)?.template;
+      const discountResult = hasActiveSubscription && originalPrice > 0
+        ? calculateDiscountedPrice(originalPrice, panelId)
+        : { discountedPrice: originalPrice, hasDiscount: false };
+      const finalPrice = Number(discountResult.discountedPrice ?? originalPrice);
+      const discountPercentage = originalPrice > 0 && discountResult.hasDiscount
+        ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
+        : undefined;
+      const operationalStatus: 'on' | 'off' | 'manutencao' =
+        module?.operational_status === 'maintenance' ? 'manutencao' : module?.operational_status === 'off' ? 'off' : 'on';
 
       return {
         id: moduleId,
         title: module?.title || fallback.title,
         description: module?.description || fallback.description,
-        price: Number(module?.price ?? fallback.price),
+        price: finalPrice,
+        originalPrice,
+        priceDisplay: formatModulePrice(finalPrice),
+        originalPriceDisplay: discountPercentage ? formatModulePrice(originalPrice) : undefined,
+        discountPercentage,
+        icon: module?.icon || fallback.icon,
+        color: module?.color || fallback.color,
+        template: resolveModuleTemplate(panelTemplate),
+        operationalStatus,
       };
     });
-  }, [modules]);
+  }, [calculateDiscountedPrice, hasActiveSubscription, modules, panels]);
 
   const selectedLookupModule = useMemo(
     () => selectedModuleCards.find((module) => module.id === selectedLookupModuleId) || selectedModuleCards[0],
@@ -729,33 +783,58 @@ const ControlePessoalClientesPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <ModuleGridWrapper className="gap-y-3">
                 {selectedModuleCards.map((moduleCard) => {
                   const selected = selectedLookupModuleId === moduleCard.id;
 
                   return (
-                    <button
+                    <div
                       key={moduleCard.id}
-                      type="button"
                       onClick={() => setSelectedLookupModuleId(moduleCard.id)}
-                      className={`w-full rounded-lg border p-3 text-left transition-colors ${selected ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/20'}`}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedLookupModuleId(moduleCard.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={selected}
+                      aria-label={`Selecionar módulo ${moduleCard.title}`}
+                      className="relative cursor-pointer"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-semibold text-muted-foreground">
-                            ID {moduleCard.id}
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold md:text-base">{moduleCard.title}</p>
-                            <p className="text-xs text-muted-foreground md:text-sm">{moduleCard.description}</p>
-                          </div>
-                        </div>
-                        <Badge variant={selected ? 'default' : 'secondary'}>{formatCurrency(moduleCard.price || 0)}</Badge>
+                      <div
+                        className={cn(
+                          'rounded-xl transition-all',
+                          selected
+                            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                            : 'hover:opacity-100 opacity-95'
+                        )}
+                      >
+                        <ModuleCardTemplates
+                          module={{
+                            title: moduleCard.title,
+                            description: moduleCard.description,
+                            price: moduleCard.priceDisplay,
+                            originalPrice: moduleCard.originalPriceDisplay,
+                            discountPercentage: moduleCard.discountPercentage,
+                            status: moduleCard.operationalStatus === 'off' ? 'inativo' : 'ativo',
+                            operationalStatus: moduleCard.operationalStatus,
+                            iconSize: 'medium',
+                            showDescription: true,
+                            icon: moduleCard.icon,
+                            color: moduleCard.color,
+                          }}
+                          template={moduleCard.template}
+                        />
+                        <Badge variant={selected ? 'default' : 'secondary'} className="absolute left-2 top-2 z-10 text-[10px]">
+                          {selected ? 'Selecionado' : `ID ${moduleCard.id}`}
+                        </Badge>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
-              </div>
+              </ModuleGridWrapper>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="space-y-2">
