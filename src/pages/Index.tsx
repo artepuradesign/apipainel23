@@ -31,7 +31,7 @@ const Index = () => {
     >
       <MenuSuperior />
 
-      <main className="w-full overflow-x-hidden pt-16">
+      <main className="w-full overflow-x-hidden">
         <HomeCarouselSection />
         <PublicPlansSection />
         <CleanHowItWorksSection />
