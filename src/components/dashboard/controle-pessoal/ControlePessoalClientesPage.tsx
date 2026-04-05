@@ -1570,171 +1570,171 @@ const ControlePessoalClientesPage = () => {
                 </div>
               </CardContent>
             </Card>
-
-            <Dialog open={isBuscaNomeModalOpen} onOpenChange={setIsBuscaNomeModalOpen}>
-              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
-                <DialogHeader>
-                  <DialogTitle>Busca Nome</DialogTitle>
-                  <DialogDescription>
-                    Mesmo fluxo da consulta por nome: busque, selecione um resultado e escolha o tipo de consulta CPF.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                    <Input
-                      value={nomeBuscaInput}
-                      placeholder="Ex: Maria da Silva ou cole um link..."
-                      onChange={(event) => setNomeBuscaInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !isBuscaNomeSubmitting) {
-                          event.preventDefault();
-                          void handleBuscaNomeInModal();
-                        }
-                      }}
-                    />
-                    <Button type="button" onClick={() => void handleBuscaNomeInModal()} disabled={isBuscaNomeSubmitting}>
-                      {isBuscaNomeSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Buscando...
-                        </>
-                      ) : (
-                        <>
-                          <Search className="mr-2 h-4 w-4" />
-                          Consultar Nome
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {nomeBuscaLog.length > 0 ? (
-                    <div className="rounded-md border border-border bg-muted/30 p-2">
-                      <pre className="max-h-28 overflow-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
-                        {nomeBuscaLog.join('\n')}
-                      </pre>
-                    </div>
-                  ) : null}
-
-                  {nomeBuscaResultados.length > 0 ? (
-                    <>
-                      <div className="rounded-md border border-border bg-muted/20 p-2 text-sm">
-                        <span className="font-semibold">Resultados encontrados:</span> {nomeBuscaTotal}
-                      </div>
-
-                      <div className="hidden sm:block overflow-x-auto rounded-md border border-border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Nome</TableHead>
-                              <TableHead>CPF</TableHead>
-                              <TableHead>Nascimento</TableHead>
-                              <TableHead>Demais Dados</TableHead>
-                              <TableHead className="text-right">Ação</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {nomeBuscaResultados.map((resultado, index) => {
-                              const extraFields = getExtraFields(resultado);
-                              const isSelected = selectedNomeBuscaResult?.cpf === resultado.cpf && selectedNomeBuscaResult?.nome === resultado.nome;
-
-                              return (
-                                <TableRow key={`${resultado.cpf || 'registro'}-${index}`}>
-                                  <TableCell className="font-medium">{resultado.nome || '—'}</TableCell>
-                                  <TableCell className="font-mono text-sm">{resultado.cpf || '—'}</TableCell>
-                                  <TableCell>{resultado.nascimento || '—'}</TableCell>
-                                  <TableCell>
-                                    {extraFields.length > 0 ? (
-                                      <div className="space-y-1">
-                                        {extraFields.map((field) => (
-                                          <div key={field.key} className="text-xs leading-relaxed">
-                                            <span className="text-muted-foreground">{field.label}: </span>
-                                            <span>{field.value}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">—</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <Button
-                                      type="button"
-                                      variant={isSelected ? 'secondary' : 'outline'}
-                                      size="sm"
-                                      onClick={() => handleSelectNomeBuscaResult(resultado)}
-                                    >
-                                      {isSelected ? 'Selecionado' : 'Selecionar'}
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-
-                      <div className="space-y-2 sm:hidden">
-                        {nomeBuscaResultados.map((resultado, index) => {
-                          const extraFields = getExtraFields(resultado);
-                          const isSelected = selectedNomeBuscaResult?.cpf === resultado.cpf && selectedNomeBuscaResult?.nome === resultado.nome;
-
-                          return (
-                            <div key={`${resultado.cpf || 'registro-mobile'}-${index}`} className="rounded-md border border-border p-3">
-                              <p className="text-sm font-medium">{resultado.nome || '—'}</p>
-                              <p className="text-xs text-muted-foreground">CPF: {resultado.cpf || '—'}</p>
-                              <p className="text-xs text-muted-foreground">Nascimento: {resultado.nascimento || '—'}</p>
-                              {extraFields.length > 0 ? (
-                                <div className="mt-2 space-y-1 border-t border-border pt-2">
-                                  {extraFields.map((field) => (
-                                    <div key={field.key} className="text-xs">
-                                      <span className="text-muted-foreground">{field.label}: </span>
-                                      <span>{field.value}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : null}
-                              <Button
-                                type="button"
-                                variant={isSelected ? 'secondary' : 'outline'}
-                                size="sm"
-                                className="mt-3 w-full"
-                                onClick={() => handleSelectNomeBuscaResult(resultado)}
-                              >
-                                {isSelected ? 'Selecionado' : 'Selecionar'}
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : null}
-
-                  {selectedNomeBuscaResult ? (
-                    <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-                      <p className="text-sm">
-                        <span className="font-semibold">CPF selecionado:</span> {selectedNomeBuscaResult.cpf || '-'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Escolha o tipo de consulta CPF para continuar:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {cpfLookupModules.map((module) => (
-                          <Button
-                            key={module.id}
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleChooseCpfModuleFromNomeModal(module.id)}
-                          >
-                            {module.title}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </DialogContent>
-            </Dialog>
           ) : null}
+
+          <Dialog open={isBuscaNomeModalOpen} onOpenChange={setIsBuscaNomeModalOpen}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+              <DialogHeader>
+                <DialogTitle>Busca Nome</DialogTitle>
+                <DialogDescription>
+                  Mesmo fluxo da consulta por nome: busque, selecione um resultado e escolha o tipo de consulta CPF.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <Input
+                    value={nomeBuscaInput}
+                    placeholder="Ex: Maria da Silva ou cole um link..."
+                    onChange={(event) => setNomeBuscaInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !isBuscaNomeSubmitting) {
+                        event.preventDefault();
+                        void handleBuscaNomeInModal();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={() => void handleBuscaNomeInModal()} disabled={isBuscaNomeSubmitting}>
+                    {isBuscaNomeSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Consultar Nome
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {nomeBuscaLog.length > 0 ? (
+                  <div className="rounded-md border border-border bg-muted/30 p-2">
+                    <pre className="max-h-28 overflow-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
+                      {nomeBuscaLog.join('\n')}
+                    </pre>
+                  </div>
+                ) : null}
+
+                {nomeBuscaResultados.length > 0 ? (
+                  <>
+                    <div className="rounded-md border border-border bg-muted/20 p-2 text-sm">
+                      <span className="font-semibold">Resultados encontrados:</span> {nomeBuscaTotal}
+                    </div>
+
+                    <div className="hidden sm:block overflow-x-auto rounded-md border border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>CPF</TableHead>
+                            <TableHead>Nascimento</TableHead>
+                            <TableHead>Demais Dados</TableHead>
+                            <TableHead className="text-right">Ação</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {nomeBuscaResultados.map((resultado, index) => {
+                            const extraFields = getExtraFields(resultado);
+                            const isSelected = selectedNomeBuscaResult?.cpf === resultado.cpf && selectedNomeBuscaResult?.nome === resultado.nome;
+
+                            return (
+                              <TableRow key={`${resultado.cpf || 'registro'}-${index}`}>
+                                <TableCell className="font-medium">{resultado.nome || '—'}</TableCell>
+                                <TableCell className="font-mono text-sm">{resultado.cpf || '—'}</TableCell>
+                                <TableCell>{resultado.nascimento || '—'}</TableCell>
+                                <TableCell>
+                                  {extraFields.length > 0 ? (
+                                    <div className="space-y-1">
+                                      {extraFields.map((field) => (
+                                        <div key={field.key} className="text-xs leading-relaxed">
+                                          <span className="text-muted-foreground">{field.label}: </span>
+                                          <span>{field.value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    type="button"
+                                    variant={isSelected ? 'secondary' : 'outline'}
+                                    size="sm"
+                                    onClick={() => handleSelectNomeBuscaResult(resultado)}
+                                  >
+                                    {isSelected ? 'Selecionado' : 'Selecionar'}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <div className="space-y-2 sm:hidden">
+                      {nomeBuscaResultados.map((resultado, index) => {
+                        const extraFields = getExtraFields(resultado);
+                        const isSelected = selectedNomeBuscaResult?.cpf === resultado.cpf && selectedNomeBuscaResult?.nome === resultado.nome;
+
+                        return (
+                          <div key={`${resultado.cpf || 'registro-mobile'}-${index}`} className="rounded-md border border-border p-3">
+                            <p className="text-sm font-medium">{resultado.nome || '—'}</p>
+                            <p className="text-xs text-muted-foreground">CPF: {resultado.cpf || '—'}</p>
+                            <p className="text-xs text-muted-foreground">Nascimento: {resultado.nascimento || '—'}</p>
+                            {extraFields.length > 0 ? (
+                              <div className="mt-2 space-y-1 border-t border-border pt-2">
+                                {extraFields.map((field) => (
+                                  <div key={field.key} className="text-xs">
+                                    <span className="text-muted-foreground">{field.label}: </span>
+                                    <span>{field.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                            <Button
+                              type="button"
+                              variant={isSelected ? 'secondary' : 'outline'}
+                              size="sm"
+                              className="mt-3 w-full"
+                              onClick={() => handleSelectNomeBuscaResult(resultado)}
+                            >
+                              {isSelected ? 'Selecionado' : 'Selecionar'}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+
+                {selectedNomeBuscaResult ? (
+                  <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                    <p className="text-sm">
+                      <span className="font-semibold">CPF selecionado:</span> {selectedNomeBuscaResult.cpf || '-'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Escolha o tipo de consulta CPF para continuar:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {cpfLookupModules.map((module) => (
+                        <Button
+                          key={module.id}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleChooseCpfModuleFromNomeModal(module.id)}
+                        >
+                          {module.title}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {orderedVisibleSections.length > 0 ? (
             <Card>
