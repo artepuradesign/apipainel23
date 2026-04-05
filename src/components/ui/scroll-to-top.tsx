@@ -1,8 +1,22 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
  import { ArrowUp } from 'lucide-react';
  import { Button } from './button';
  
- const ScrollToTop = () => {
+type ScrollToTopProps = {
+  global?: boolean;
+};
+
+let hasGlobalScrollToTop = false;
+
+const ScrollToTop = ({ global = false }: ScrollToTopProps) => {
+  if (global) {
+    hasGlobalScrollToTop = true;
+  }
+
+  if (!global && hasGlobalScrollToTop) {
+    return null;
+  }
+
    const [isVisible, setIsVisible] = useState(false);
  
    useEffect(() => {
