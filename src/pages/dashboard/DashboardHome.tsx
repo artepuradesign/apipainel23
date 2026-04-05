@@ -243,27 +243,29 @@ const DashboardHome = () => {
           subtitle="Visão geral de caixa, transações e usuários online"
         />
 
-        <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
-          <h2 className="text-sm font-semibold text-foreground sm:text-base">Painéis disponíveis</h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
-            {activePanels.map((panel) => {
-              const Icon = getIconComponent(panel.icon);
+        {activePanels.length > 0 ? (
+          <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
+            <h2 className="text-sm font-semibold text-foreground sm:text-base">Painéis disponíveis</h2>
+            <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+              {activePanels.map((panel) => {
+                const Icon = getIconComponent(panel.icon);
 
-              return (
-                <button
-                  type="button"
-                  key={panel.id}
-                  onClick={() => handlePanelAnchorClick(panel.id)}
-                  className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2"
-                  title={panel.name}
-                >
-                  <Icon className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-medium text-foreground sm:text-sm">{panel.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+                return (
+                  <button
+                    type="button"
+                    key={panel.id}
+                    onClick={() => handlePanelAnchorClick(panel.id)}
+                    className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2"
+                    title={panel.name}
+                  >
+                    <Icon className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium text-foreground sm:text-sm">{panel.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
         {/* Panels Grid - All active panels in module style */}
         <PanelsGrid activePanels={activePanels} />
