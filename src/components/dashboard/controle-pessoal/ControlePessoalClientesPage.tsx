@@ -34,6 +34,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApiModules } from '@/hooks/useApiModules';
 import { useApiPanels } from '@/hooks/useApiPanels';
@@ -73,6 +75,8 @@ import ModuleCardTemplates from '@/components/configuracoes/personalization/Modu
 import ModuleGridWrapper from '@/components/configuracoes/personalization/ModuleGridWrapper';
 import { cn } from '@/lib/utils';
 import { smoothScrollToHash } from '@/utils/smoothScroll';
+import { buscaNomeService, NomeConsultaResultado } from '@/services/buscaNomeService';
+import { parseFdxHtmlResults } from '@/utils/fdxHtmlResultsParser';
 
 type CpfLookupResult = Record<string, unknown>;
 type ClientStatus = 'prioridade-alta' | 'prioridade-media' | 'prioridade-baixa' | 'em-andamento' | 'concluido';
@@ -111,7 +115,7 @@ const relevantLookupRoutes = [
   '/dashboard/consultar-nome-completo',
 ];
 
-const allowedLookupModuleIds = new Set([156, 21, 155, 83, 166, 23, 31]);
+const allowedLookupModuleIds = new Set([156, 21, 155, 83, 166, 23]);
 
 type ModuleTemplateType = 'corporate' | 'creative' | 'minimal' | 'modern' | 'elegant' | 'forest' | 'rose' | 'cosmic' | 'neon' | 'sunset' | 'arctic' | 'volcano' | 'matrix';
 
@@ -139,7 +143,6 @@ const moduleFallbackById: Record<number, { title: string; description: string; p
   83: { title: 'CPF Completo', description: 'Consulta CPF completa', price: 0, icon: 'BarChart3', color: '#7c3aed', panelId: 0 },
   166: { title: 'Consulta CPF', description: 'Consulta com retorno completo de dados', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
   23: { title: 'Consulta CPF', description: 'Consulta com retorno completo de dados', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
-  31: { title: 'Consulta CPF', description: 'Consulta com retorno completo de dados', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
 };
 
 const moduleFallbackByRoute: Record<string, { title: string; description: string; price: number; icon: string; color: string; panelId: number }> = {
@@ -494,6 +497,13 @@ const ControlePessoalClientesPage = () => {
     notes: '',
     status: 'prioridade-media' as ClientStatus,
   });
+  const [isBuscaNomeModalOpen, setIsBuscaNomeModalOpen] = useState(false);
+  const [nomeBuscaInput, setNomeBuscaInput] = useState('');
+  const [isBuscaNomeSubmitting, setIsBuscaNomeSubmitting] = useState(false);
+  const [nomeBuscaResultados, setNomeBuscaResultados] = useState<NomeConsultaResultado[]>([]);
+  const [nomeBuscaTotal, setNomeBuscaTotal] = useState(0);
+  const [nomeBuscaLog, setNomeBuscaLog] = useState<string[]>([]);
+  const [selectedNomeBuscaResult, setSelectedNomeBuscaResult] = useState<NomeConsultaResultado | null>(null);
 
   const selectedModuleCards = useMemo(() => {
     const normalizeRoute = (rawValue?: string | null) => {
@@ -571,6 +581,11 @@ const ControlePessoalClientesPage = () => {
   }, [selectedLookupModule?.price]);
 
   const selectedLookupTitle = selectedLookupModule?.title || 'Consulta CPF';
+  const isBuscaNomeModuleSelected = selectedLookupModule?.id === 156;
+  const cpfLookupModules = useMemo(
+    () => selectedModuleCards.filter((module) => module.id !== 156),
+    [selectedModuleCards]
+  );
 
   const resultDocument = useMemo(() => extractDocument(lookupResult, lookupDocument), [lookupResult, lookupDocument]);
   const resultName = useMemo(() => extractName(lookupResult), [lookupResult]);
@@ -1150,6 +1165,139 @@ const ControlePessoalClientesPage = () => {
     [consultations, enrichLookupResultByCpfId]
   );
 
+  const formatFieldLabel = useCallback((field: string) => {
+    return field
+      .replace(/_/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }, []);
+
+  const getExtraFields = useCallback((resultado: NomeConsultaResultado) => {
+    const hiddenFields = new Set(['nome', 'cpf', 'nascimento']);
+
+    return Object.entries(resultado)
+      .filter(([key, value]) => {
+        if (hiddenFields.has(key)) return false;
+        if (typeof value !== 'string') return false;
+        const normalized = value.trim().toLowerCase();
+        return normalized !== '' && normalized !== '-' && normalized !== 'null' && normalized !== 'undefined';
+      })
+      .map(([key, value]) => ({
+        key,
+        label: formatFieldLabel(key),
+        value: (value as string).trim(),
+      }));
+  }, [formatFieldLabel]);
+
+  const handleBuscaNomeInModal = useCallback(async () => {
+    const inputValue = nomeBuscaInput.trim();
+    const isManualLink = inputValue.includes('pastebin.sbs') || inputValue.includes('api.fdxapis.us');
+
+    if (!isManualLink && inputValue.length < 5) {
+      toast.error('Digite um nome válido (mínimo 5 caracteres) ou cole um link.');
+      return;
+    }
+
+    setIsBuscaNomeSubmitting(true);
+    setNomeBuscaResultados([]);
+    setNomeBuscaTotal(0);
+    setNomeBuscaLog(['Iniciando consulta por nome...']);
+    setSelectedNomeBuscaResult(null);
+
+    try {
+      const response = await buscaNomeService.consultarNome(
+        isManualLink ? '' : inputValue,
+        isManualLink ? inputValue : undefined
+      );
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Não foi possível buscar por nome.');
+      }
+
+      const data = response.data;
+      let finalResultados: NomeConsultaResultado[] = Array.isArray(data.resultados) ? data.resultados : [];
+      let finalTotal = Number(data.total_encontrados || 0);
+      const finalLink = data.link || null;
+
+      setNomeBuscaLog(data.log || []);
+
+      if (finalLink && (finalResultados.length === 0 || finalTotal === 0)) {
+        setNomeBuscaLog((prev) => [...prev, 'Carregando resultados do link...']);
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 45000);
+          const linkResp = await fetch(finalLink, {
+            method: 'GET',
+            signal: controller.signal,
+          });
+          const html = await linkResp.text();
+          window.clearTimeout(timeoutId);
+
+          const parsed = parseFdxHtmlResults(html);
+          if (parsed.length > 0) {
+            finalResultados = parsed;
+            finalTotal = parsed.length;
+            setNomeBuscaLog((prev) => [...prev, `${parsed.length} registro(s) carregado(s) do link.`]);
+          }
+        } catch {
+          setNomeBuscaLog((prev) => [...prev, 'Não foi possível carregar o link automaticamente.']);
+        }
+      }
+
+      setNomeBuscaResultados(finalResultados);
+      setNomeBuscaTotal(finalTotal);
+
+      if (finalTotal === 0) {
+        toast.warning('Nenhum registro encontrado para este nome.');
+      } else {
+        toast.success(`${finalTotal} registro(s) encontrado(s).`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao consultar nome.';
+      setNomeBuscaLog((prev) => [...prev, `ERRO: ${message}`]);
+      toast.error(message);
+    } finally {
+      setIsBuscaNomeSubmitting(false);
+    }
+  }, [nomeBuscaInput]);
+
+  const handleSelectNomeBuscaResult = useCallback((resultado: NomeConsultaResultado) => {
+    const cpfDigits = String(resultado.cpf || '').replace(/\D/g, '').slice(0, 11);
+
+    if (cpfDigits.length !== 11) {
+      toast.error('Este registro não possui CPF válido para consulta.');
+      return;
+    }
+
+    setSelectedNomeBuscaResult(resultado);
+    setLookupDocument(formatCpf(cpfDigits));
+    setLookupError(null);
+    setLookupResult(null);
+    setShowManualForm(false);
+  }, []);
+
+  const handleChooseCpfModuleFromNomeModal = useCallback((moduleId: number) => {
+    if (!selectedNomeBuscaResult) {
+      toast.error('Selecione um registro da lista antes de escolher o tipo de consulta.');
+      return;
+    }
+
+    setSelectedLookupModuleId(moduleId);
+    setIsBuscaNomeModalOpen(false);
+    toast.success('CPF carregado. Agora clique em "Consultar" para executar a consulta de CPF.');
+  }, [selectedNomeBuscaResult]);
+
+  useEffect(() => {
+    if (!isBuscaNomeModalOpen) {
+      setNomeBuscaResultados([]);
+      setNomeBuscaTotal(0);
+      setNomeBuscaLog([]);
+      setSelectedNomeBuscaResult(null);
+    }
+  }, [isBuscaNomeModalOpen]);
+
 
   const resultHasSections = useMemo(
     () => {
@@ -1284,17 +1432,31 @@ const ControlePessoalClientesPage = () => {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="space-y-2">
-                  <Label htmlFor="clients-lookup-cpf">CPF para consulta</Label>
+                  <Label htmlFor="clients-lookup-cpf">
+                    {isBuscaNomeModuleSelected ? 'CPF para consulta (definido pela Busca Nome)' : 'CPF para consulta'}
+                  </Label>
                   <Input
                     id="clients-lookup-cpf"
-                    placeholder="000.000.000-00"
+                    placeholder={isBuscaNomeModuleSelected ? 'Abra o modal para selecionar um CPF' : '000.000.000-00'}
                     inputMode="numeric"
                     maxLength={14}
                     value={lookupDocument}
                     onChange={(event) => setLookupDocument(formatCpf(event.target.value))}
+                    disabled={isBuscaNomeModuleSelected}
                   />
                 </div>
-                <Button type="button" className="sm:self-end" onClick={() => void handleRunLookup()} disabled={isLookupSubmitting}>
+                <Button
+                  type="button"
+                  className="sm:self-end"
+                  onClick={() => {
+                    if (isBuscaNomeModuleSelected) {
+                      setIsBuscaNomeModalOpen(true);
+                      return;
+                    }
+                    void handleRunLookup();
+                  }}
+                  disabled={isLookupSubmitting || isBuscaNomeSubmitting}
+                >
                   {isLookupSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1303,11 +1465,17 @@ const ControlePessoalClientesPage = () => {
                   ) : (
                     <>
                       <Search className="mr-2 h-4 w-4" />
-                      Consultar
+                      {isBuscaNomeModuleSelected ? 'Buscar por nome' : 'Consultar'}
                     </>
                   )}
                 </Button>
               </div>
+
+              {isBuscaNomeModuleSelected ? (
+                <p className="text-xs text-muted-foreground">
+                  No módulo Busca Nome, clique em "Buscar por nome" para abrir o modal, selecionar um CPF e depois escolher o tipo de consulta.
+                </p>
+              ) : null}
 
               <div className="rounded-md border border-border bg-muted/20 p-3 text-sm md:text-base">
                 <p>
@@ -1403,6 +1571,170 @@ const ControlePessoalClientesPage = () => {
               </CardContent>
             </Card>
           ) : null}
+
+          <Dialog open={isBuscaNomeModalOpen} onOpenChange={setIsBuscaNomeModalOpen}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+              <DialogHeader>
+                <DialogTitle>Busca Nome</DialogTitle>
+                <DialogDescription>
+                  Mesmo fluxo da consulta por nome: busque, selecione um resultado e escolha o tipo de consulta CPF.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <Input
+                    value={nomeBuscaInput}
+                    placeholder="Ex: Maria da Silva ou cole um link..."
+                    onChange={(event) => setNomeBuscaInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !isBuscaNomeSubmitting) {
+                        event.preventDefault();
+                        void handleBuscaNomeInModal();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={() => void handleBuscaNomeInModal()} disabled={isBuscaNomeSubmitting}>
+                    {isBuscaNomeSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Consultar Nome
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {nomeBuscaLog.length > 0 ? (
+                  <div className="rounded-md border border-border bg-muted/30 p-2">
+                    <pre className="max-h-28 overflow-auto whitespace-pre-wrap text-[11px] text-muted-foreground">
+                      {nomeBuscaLog.join('\n')}
+                    </pre>
+                  </div>
+                ) : null}
+
+                {nomeBuscaResultados.length > 0 ? (
+                  <>
+                    <div className="rounded-md border border-border bg-muted/20 p-2 text-sm">
+                      <span className="font-semibold">Resultados encontrados:</span> {nomeBuscaTotal}
+                    </div>
+
+                    <div className="hidden sm:block overflow-x-auto rounded-md border border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>CPF</TableHead>
+                            <TableHead>Nascimento</TableHead>
+                            <TableHead>Demais Dados</TableHead>
+                            <TableHead className="text-right">Ação</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {nomeBuscaResultados.map((resultado, index) => {
+                            const extraFields = getExtraFields(resultado);
+                            const isSelected = selectedNomeBuscaResult?.cpf === resultado.cpf && selectedNomeBuscaResult?.nome === resultado.nome;
+
+                            return (
+                              <TableRow key={`${resultado.cpf || 'registro'}-${index}`}>
+                                <TableCell className="font-medium">{resultado.nome || '—'}</TableCell>
+                                <TableCell className="font-mono text-sm">{resultado.cpf || '—'}</TableCell>
+                                <TableCell>{resultado.nascimento || '—'}</TableCell>
+                                <TableCell>
+                                  {extraFields.length > 0 ? (
+                                    <div className="space-y-1">
+                                      {extraFields.map((field) => (
+                                        <div key={field.key} className="text-xs leading-relaxed">
+                                          <span className="text-muted-foreground">{field.label}: </span>
+                                          <span>{field.value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    type="button"
+                                    variant={isSelected ? 'secondary' : 'outline'}
+                                    size="sm"
+                                    onClick={() => handleSelectNomeBuscaResult(resultado)}
+                                  >
+                                    {isSelected ? 'Selecionado' : 'Selecionar'}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <div className="space-y-2 sm:hidden">
+                      {nomeBuscaResultados.map((resultado, index) => {
+                        const extraFields = getExtraFields(resultado);
+                        const isSelected = selectedNomeBuscaResult?.cpf === resultado.cpf && selectedNomeBuscaResult?.nome === resultado.nome;
+
+                        return (
+                          <div key={`${resultado.cpf || 'registro-mobile'}-${index}`} className="rounded-md border border-border p-3">
+                            <p className="text-sm font-medium">{resultado.nome || '—'}</p>
+                            <p className="text-xs text-muted-foreground">CPF: {resultado.cpf || '—'}</p>
+                            <p className="text-xs text-muted-foreground">Nascimento: {resultado.nascimento || '—'}</p>
+                            {extraFields.length > 0 ? (
+                              <div className="mt-2 space-y-1 border-t border-border pt-2">
+                                {extraFields.map((field) => (
+                                  <div key={field.key} className="text-xs">
+                                    <span className="text-muted-foreground">{field.label}: </span>
+                                    <span>{field.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                            <Button
+                              type="button"
+                              variant={isSelected ? 'secondary' : 'outline'}
+                              size="sm"
+                              className="mt-3 w-full"
+                              onClick={() => handleSelectNomeBuscaResult(resultado)}
+                            >
+                              {isSelected ? 'Selecionado' : 'Selecionar'}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+
+                {selectedNomeBuscaResult ? (
+                  <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                    <p className="text-sm">
+                      <span className="font-semibold">CPF selecionado:</span> {selectedNomeBuscaResult.cpf || '-'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Escolha o tipo de consulta CPF para continuar:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {cpfLookupModules.map((module) => (
+                        <Button
+                          key={module.id}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleChooseCpfModuleFromNomeModal(module.id)}
+                        >
+                          {module.title}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {orderedVisibleSections.length > 0 ? (
             <Card>
