@@ -273,6 +273,40 @@ const SectionGrid = ({ title, icon, data }: { title: string; icon: React.ReactNo
   </Card>
 );
 
+type StructuredSectionKey =
+  | 'dadosFinanceiros'
+  | 'dadosBasicos'
+  | 'telefones'
+  | 'emails'
+  | 'enderecos'
+  | 'parentes'
+  | 'dividasAtivas'
+  | 'operadoraClaro'
+  | 'operadoraVivo'
+  | 'operadoraTim'
+  | 'operadoraOi';
+
+const sectionMetaByKey: Record<StructuredSectionKey, { title: string; icon: React.ReactNode }> = {
+  dadosFinanceiros: { title: 'Dados Financeiros', icon: <Wallet className="h-4 w-4" /> },
+  dadosBasicos: { title: 'Dados Básicos', icon: <Database className="h-4 w-4" /> },
+  telefones: { title: 'Telefones', icon: <Phone className="h-4 w-4" /> },
+  emails: { title: 'Emails', icon: <Mail className="h-4 w-4" /> },
+  enderecos: { title: 'Endereços', icon: <MapPin className="h-4 w-4" /> },
+  parentes: { title: 'Parentes', icon: <Heart className="h-4 w-4" /> },
+  dividasAtivas: { title: 'Dívidas Ativas (SIDA)', icon: <AlertTriangle className="h-4 w-4" /> },
+  operadoraClaro: { title: 'Operadora Claro', icon: <Smartphone className="h-4 w-4" /> },
+  operadoraVivo: { title: 'Operadora Vivo', icon: <Smartphone className="h-4 w-4" /> },
+  operadoraTim: { title: 'Operadora TIM', icon: <Smartphone className="h-4 w-4" /> },
+  operadoraOi: { title: 'Operadora OI', icon: <Smartphone className="h-4 w-4" /> },
+};
+
+const sectionOrderByModuleId: Record<number, StructuredSectionKey[]> = {
+  156: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
+  155: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
+  21: ['dadosBasicos', 'telefones', 'emails', 'enderecos'],
+  83: ['dadosFinanceiros', 'dadosBasicos', 'telefones', 'emails', 'enderecos', 'parentes'],
+};
+
 const ControlePessoalClientesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -733,23 +767,25 @@ const ControlePessoalClientesPage = () => {
 
 
   const resultHasSections = useMemo(
-    () =>
-      Boolean(
-        lookupResult &&
-          (structuredSections.dadosFinanceiros.length ||
-            structuredSections.dadosBasicos.length ||
-            structuredSections.telefones.length ||
-            structuredSections.emails.length ||
-            structuredSections.enderecos.length ||
-            structuredSections.parentes.length ||
-            structuredSections.dividasAtivas.length ||
-            structuredSections.operadoraClaro.length ||
-            structuredSections.operadoraVivo.length ||
-            structuredSections.operadoraTim.length ||
-            structuredSections.operadoraOi.length)
-      ),
-    [lookupResult, structuredSections]
+    () => {
+      if (!lookupResult) return false;
+      const orderedKeys = sectionOrderByModuleId[selectedLookupModuleId] || sectionOrderByModuleId[21];
+      return orderedKeys.some((key) => structuredSections[key].length > 0);
+    },
+    [lookupResult, selectedLookupModuleId, structuredSections]
   );
+
+  const orderedVisibleSections = useMemo(() => {
+    const orderedKeys = sectionOrderByModuleId[selectedLookupModuleId] || sectionOrderByModuleId[21];
+    return orderedKeys
+      .filter((key) => structuredSections[key].length > 0)
+      .map((key) => ({
+        key,
+        title: sectionMetaByKey[key].title,
+        icon: sectionMetaByKey[key].icon,
+        data: structuredSections[key],
+      }));
+  }, [selectedLookupModuleId, structuredSections]);
 
   return (
     <div className={getDashboardPageClassName('standard')}>
@@ -960,17 +996,9 @@ const ControlePessoalClientesPage = () => {
 
           {resultHasSections ? (
             <div className="space-y-4">
-              <SectionGrid title="Dados Financeiros" icon={<Wallet className="h-4 w-4" />} data={structuredSections.dadosFinanceiros} />
-              <SectionGrid title="Dados Básicos" icon={<Database className="h-4 w-4" />} data={structuredSections.dadosBasicos} />
-              <SectionGrid title="Telefones" icon={<Phone className="h-4 w-4" />} data={structuredSections.telefones} />
-              <SectionGrid title="Emails" icon={<Mail className="h-4 w-4" />} data={structuredSections.emails} />
-              <SectionGrid title="Endereços" icon={<MapPin className="h-4 w-4" />} data={structuredSections.enderecos} />
-              <SectionGrid title="Parentes" icon={<Heart className="h-4 w-4" />} data={structuredSections.parentes} />
-              <SectionGrid title="Dívidas Ativas (SIDA)" icon={<AlertTriangle className="h-4 w-4" />} data={structuredSections.dividasAtivas} />
-              <SectionGrid title="Operadora Claro" icon={<Smartphone className="h-4 w-4" />} data={structuredSections.operadoraClaro} />
-              <SectionGrid title="Operadora Vivo" icon={<Smartphone className="h-4 w-4" />} data={structuredSections.operadoraVivo} />
-              <SectionGrid title="Operadora TIM" icon={<Smartphone className="h-4 w-4" />} data={structuredSections.operadoraTim} />
-              <SectionGrid title="Operadora OI" icon={<Smartphone className="h-4 w-4" />} data={structuredSections.operadoraOi} />
+              {orderedVisibleSections.map((section) => (
+                <SectionGrid key={section.key} title={section.title} icon={section.icon} data={section.data} />
+              ))}
             </div>
           ) : null}
 
