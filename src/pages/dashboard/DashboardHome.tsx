@@ -226,6 +226,31 @@ const DashboardHome = () => {
   return (
     <ModuleTemplateProvider>
       <div className={getDashboardPageClassName('standard')}>
+        <PageHeaderCard
+          title="Dashboard"
+          subtitle="Seus painéis ativos"
+        />
+
+        <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
+          <h2 className="text-sm font-semibold text-foreground sm:text-base">Painéis disponíveis</h2>
+          <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+            {activePanels.map((panel) => {
+              const Icon = getIconComponent(panel.icon);
+
+              return (
+                <div
+                  key={panel.id}
+                  className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2"
+                  title={panel.name}
+                >
+                  <Icon className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium text-foreground sm:text-sm">{panel.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* Panels Grid - All active panels in module style */}
         <PanelsGrid activePanels={activePanels} />
 
