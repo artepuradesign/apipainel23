@@ -111,6 +111,8 @@ const relevantLookupRoutes = [
   '/dashboard/consultar-nome-completo',
 ];
 
+const allowedLookupModuleIds = new Set([156, 21, 155, 83, 166, 23, 31]);
+
 type ModuleTemplateType = 'corporate' | 'creative' | 'minimal' | 'modern' | 'elegant' | 'forest' | 'rose' | 'cosmic' | 'neon' | 'sunset' | 'arctic' | 'volcano' | 'matrix';
 
 const validModuleTemplates: ModuleTemplateType[] = [
@@ -135,6 +137,9 @@ const moduleFallbackById: Record<number, { title: string; description: string; p
   155: { title: 'CPF Simples', description: 'Consulta CPF sem foto', price: 0, icon: 'UserRoundSearch', color: '#7c3aed', panelId: 0 },
   21: { title: 'CPF Básico', description: 'Consulta CPF com dados essenciais', price: 0, icon: 'Package', color: '#7c3aed', panelId: 0 },
   83: { title: 'CPF Completo', description: 'Consulta CPF completa', price: 0, icon: 'BarChart3', color: '#7c3aed', panelId: 0 },
+  166: { title: 'Consulta CPF', description: 'Consulta com retorno completo de dados', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
+  23: { title: 'Consulta CPF', description: 'Consulta com retorno completo de dados', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
+  31: { title: 'Consulta CPF', description: 'Consulta com retorno completo de dados', price: 0, icon: 'Shield', color: '#7c3aed', panelId: 0 },
 };
 
 const moduleFallbackByRoute: Record<string, { title: string; description: string; price: number; icon: string; color: string; panelId: number }> = {
@@ -502,19 +507,12 @@ const ControlePessoalClientesPage = () => {
     };
 
     const selectedModules = modules
-      .filter((module) => {
-        const routes = [module.path, module.slug, module.api_endpoint].map((value) => normalizeRoute(String(value || '')));
-        const byRoute = routes.some((route) => relevantLookupRoutes.includes(route));
-        if (byRoute) return true;
-
-        const mergedText = normalizeTitleText(`${module.title} ${module.name} ${module.slug}`);
-        return mergedText.includes('cpf') || mergedText.includes('nome completo') || mergedText.includes('puxa tudo');
-      })
+      .filter((module) => allowedLookupModuleIds.has(Number(module.id)))
       .sort((a, b) => (Number(a.sort_order || 0) - Number(b.sort_order || 0)));
 
     const baseList = selectedModules.length
       ? selectedModules
-      : [154, 83, 21, 155, 156].map((moduleId) => ({ id: moduleId } as (typeof modules)[number]));
+      : Array.from(allowedLookupModuleIds).map((moduleId) => ({ id: moduleId } as (typeof modules)[number]));
 
     return baseList.map((moduleLike) => {
       const module = modules.find((item) => Number(item.id) === Number(moduleLike.id));
@@ -550,12 +548,7 @@ const ControlePessoalClientesPage = () => {
         template: resolveModuleTemplate(panelTemplate),
         operationalStatus,
         route: moduleRoute || '',
-        profile: resolveModuleProfile({
-          id: Number(moduleLike.id),
-          route: moduleRoute || module?.path || module?.slug,
-          title: module?.title || fallback.title,
-          slug: module?.slug,
-        }),
+        profile: 'puxaTudo' as const,
       };
     });
   }, [calculateDiscountedPrice, hasActiveSubscription, modules, panels]);
@@ -840,16 +833,7 @@ const ControlePessoalClientesPage = () => {
     };
   }, [lookupResult, resultDocument]);
 
-  const selectedLookupProfile = useMemo<'puxaTudo' | 'completo' | 'basico'>(
-    () =>
-      (selectedLookupModule?.profile as 'puxaTudo' | 'completo' | 'basico') ||
-      resolveModuleProfile({
-        id: selectedLookupModule?.id,
-        route: selectedLookupModule?.route,
-        title: selectedLookupTitle,
-      }),
-    [selectedLookupModule?.id, selectedLookupModule?.profile, selectedLookupModule?.route, selectedLookupTitle]
-  );
+  const selectedLookupProfile: 'puxaTudo' = 'puxaTudo';
 
   const loadSavedClients = useCallback(async () => {
     if (!user?.id) {
@@ -949,7 +933,7 @@ const ControlePessoalClientesPage = () => {
             document: documentDigits,
             cost: selectedLookupPrice,
             status: 'completed',
-            result_data: lookupResponse.data,
+            result_data: enrichedResult,
             metadata: {
               source: 'controlepessoal-clientes',
               page_route: '/dashboard/controlepessoal-novocliente',
@@ -1119,7 +1103,7 @@ const ControlePessoalClientesPage = () => {
   }, []);
 
   const handleOpenSavedClient = useCallback(
-    (client: SavedClient) => {
+    async (client: SavedClient) => {
       setSelectedSavedClientId(client.id);
       setLookupError(null);
 
@@ -1150,7 +1134,10 @@ const ControlePessoalClientesPage = () => {
       const resultData = consultation?.result_data;
 
       if (resultData && typeof resultData === 'object') {
-        setLookupResult(resultData as CpfLookupResult);
+        const savedResult = resultData as CpfLookupResult;
+        const savedDocumentDigits = String(client.document || consultation?.document || '').replace(/\D/g, '').slice(0, 11);
+        const enrichedSavedResult = await enrichLookupResultByCpfId(savedResult, savedDocumentDigits);
+        setLookupResult(enrichedSavedResult);
         setLookupDocument(client.document || String(consultation?.document || ''));
         setShowManualForm(false);
       } else {
@@ -1160,7 +1147,7 @@ const ControlePessoalClientesPage = () => {
         toast.warning('Não encontramos os dados completos da consulta para este cliente.');
       }
     },
-    [consultations]
+    [consultations, enrichLookupResultByCpfId]
   );
 
 
