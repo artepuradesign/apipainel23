@@ -48,11 +48,6 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
     setMobileBalloonTop(rect.bottom + 8);
   }, []);
 
-  const openHelpBalloon = React.useCallback(() => {
-    updateMobileBalloonPosition();
-    setIsHelpBalloonOpen(true);
-  }, [updateMobileBalloonPosition]);
-
   const toggleHelpBalloon = React.useCallback(() => {
     if (isHelpBalloonOpen) {
       setIsHelpBalloonOpen(false);
@@ -131,9 +126,7 @@ const PanelTitleBar: React.FC<PanelTitleBarProps> = ({
                   size="icon"
                   className="rounded-full h-8 w-8 shrink-0"
                   aria-label={`Ajuda sobre ${title}`}
-                  onClick={() => {
-                    openHelpBalloon();
-                  }}
+                  onClick={toggleHelpBalloon}
                 >
                   <CircleHelp className="h-3.5 w-3.5" />
                 </Button>
