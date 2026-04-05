@@ -9,7 +9,6 @@ import { ArrowLeft, Loader2, Trash2, Search, X, ChevronLeft, ChevronRight, Refre
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 import { rg2026Service, type Rg2026Registro } from '@/services/rg2026Service';
 
 const ITEMS_PER_PAGE = 20;
@@ -129,8 +128,7 @@ const Rg2026Todos = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 px-2 sm:px-0 pb-6">
-      <ScrollToTop />
-      <SimpleTitleBar title={`${MODULE_TITLE} · Histórico`} onBack={() => navigate(MODULE_BACK_ROUTE)} />
+            <SimpleTitleBar title={`${MODULE_TITLE} · Histórico`} onBack={() => navigate(MODULE_BACK_ROUTE)} />
 
       <Card>
         <CardContent className="p-3 sm:p-4">

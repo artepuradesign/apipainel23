@@ -16,7 +16,6 @@ import QRCode from 'react-qr-code';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 const PHP_API_BASE = 'https://qr.apipainel.com.br/qrcode';
 const PHP_VALIDATION_BASE = 'https://qr.apipainel.com.br/qrvalidation';
@@ -254,8 +253,7 @@ const QRCodeRg6mTodos = () => {
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 px-2 sm:px-0 pb-6">
-      <ScrollToTop />
-      <SimpleTitleBar title="QR Code RG 6M" onBack={() => navigate('/dashboard/qrcode-rg-6m')} />
+            <SimpleTitleBar title="QR Code RG 6M" onBack={() => navigate('/dashboard/qrcode-rg-6m')} />
 
       {/* Search & Filter Bar */}
       <Card>

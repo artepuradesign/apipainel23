@@ -21,7 +21,6 @@ import { moduleHistoryService } from '@/services/moduleHistoryService';
 import { walletApiService } from '@/services/walletApiService';
 import SimpleTitleBar from '@/components/dashboard/SimpleTitleBar';
 import LoadingScreen from '@/components/layout/LoadingScreen';
-import ScrollToTop from '@/components/ui/scroll-to-top';
 
 // URL base do backend PHP
 const PHP_API_BASE = 'https://qr.apipainel.com.br/qrcode';
@@ -1162,8 +1161,7 @@ const QRCodeRg6m = () => {
       )}
 
       {/* Scroll to Top Button */}
-      <ScrollToTop />
-    </div>
+          </div>
   );
 };
 
